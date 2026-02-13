@@ -21,18 +21,18 @@ import { ACTIVITIES } from './config/activities.config';
 // Lazy-load the 3D scene (heavy)
 const TreehouseScene = lazy(() => import('./components/TreehouseScene'));
 
-// Activity positions around the treehouse in a circular layout
+// Activity positions around the treehouse in an orbital ring
 const ACTIVITY_POSITIONS = [
-  { x: -42, y: 8 },   // top-left
-  { x: -20, y: 2 },   // left-upper
-  { x: -44, y: 35 },  // left-middle
-  { x: -22, y: 55 },  // left-lower
-  { x: -40, y: 72 },  // bottom-left
-  { x: 72, y: 8 },    // top-right
-  { x: 52, y: 2 },    // right-upper
-  { x: 74, y: 35 },   // right-middle
-  { x: 52, y: 55 },   // right-lower
-  { x: 70, y: 72 },   // bottom-right
+  { x: 14, y: 26 },   // left-upper
+  { x: 10, y: 48 },   // mid-left
+  { x: 14, y: 70 },   // left-lower
+  { x: 32, y: 13 },   // top-left
+  { x: 32, y: 84 },   // bottom-left
+  { x: 68, y: 13 },   // top-right
+  { x: 68, y: 84 },   // bottom-right
+  { x: 86, y: 26 },   // right-upper
+  { x: 90, y: 48 },   // mid-right
+  { x: 86, y: 70 },   // right-lower
 ];
 
 export default function App() {
@@ -234,7 +234,7 @@ export default function App() {
               </motion.div>
             </header>
 
-            {/* ------ FLOATING ACTIVITY BUBBLES ------ */}
+            {/* ------ FLOATING ACTIVITY BUBBLES (round icons) ------ */}
             {ACTIVITIES.map((module, index) => {
               const pos = ACTIVITY_POSITIONS[index % ACTIVITY_POSITIONS.length];
               const isLocked = totalStars < module.starsRequired;
@@ -246,66 +246,57 @@ export default function App() {
                   animate={{
                     opacity: 1,
                     scale: 1,
-                    y: [0, -6, 0],
+                    y: [0, -8, 0],
                   }}
                   transition={{
                     opacity: { delay: 0.3 + index * 0.1, duration: 0.5 },
                     scale: { delay: 0.3 + index * 0.1, duration: 0.5, type: 'spring' },
-                    y: { delay: 1 + index * 0.1, duration: 3 + (index % 3), repeat: Infinity, ease: 'easeInOut' },
+                    y: { delay: 1 + index * 0.15, duration: 3 + (index % 3), repeat: Infinity, ease: 'easeInOut' },
                   }}
                   className="absolute pointer-events-auto"
                   style={{
                     left: `${pos.x}%`,
                     top: `${pos.y}%`,
+                    transform: 'translate(-50%, -50%)',
                   }}
                 >
                   <button
                     onClick={() => !isLocked && handleActivityClick(module)}
                     disabled={isLocked}
-                    className={`group relative ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`group relative flex flex-col items-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                   >
+                    {/* Round icon circle */}
                     <div
                       className={`
-                        relative rounded-2xl p-4 w-36 transition-all duration-300
+                        relative w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all duration-300 shadow-lg
                         ${isLocked
-                          ? 'bg-black/40 backdrop-blur-md border border-white/5'
-                          : 'bg-white/15 backdrop-blur-xl border border-white/20 hover:bg-white/25 hover:border-white/40 hover:scale-110 hover:shadow-2xl'
+                          ? 'bg-black/50 backdrop-blur-md border-2 border-white/10'
+                          : 'bg-white/20 backdrop-blur-xl border-2 border-white/30 hover:bg-white/35 hover:border-white/50 hover:scale-115 hover:shadow-2xl'
                         }
                       `}
                     >
                       {/* Lock overlay */}
                       {isLocked && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10 rounded-2xl bg-black/20">
-                          <span className="text-2xl">&#128274;</span>
+                        <div className="absolute inset-0 flex items-center justify-center z-10 rounded-full bg-black/30">
+                          <span className="text-lg">&#128274;</span>
                         </div>
                       )}
 
                       {/* Module icon */}
-                      <div className={`text-5xl text-center mb-2 ${isLocked ? 'opacity-40 blur-[1px]' : ''}`}>
+                      <span className={`text-3xl ${isLocked ? 'opacity-30 blur-[1px]' : ''}`}>
                         {module.icon}
-                      </div>
-
-                      {/* Module name */}
-                      <div className={`text-sm font-bold text-center ${isLocked ? 'text-white/30' : 'text-white'}`}>
-                        {module.name}
-                      </div>
-
-                      {/* Stars required or activity count */}
-                      {isLocked ? (
-                        <div className="text-xs text-center text-yellow-400/60 mt-1">
-                          {module.starsRequired} &#11088;
-                        </div>
-                      ) : (
-                        <div className="text-xs text-center text-white/50 mt-1">
-                          {module.levels.length} activities
-                        </div>
-                      )}
+                      </span>
 
                       {/* Glow effect on hover (unlocked only) */}
                       {!isLocked && (
-                        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
                       )}
                     </div>
+
+                    {/* Label below the circle */}
+                    <span className={`mt-1.5 text-[11px] font-bold text-center whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${isLocked ? 'text-white/30' : 'text-white'}`}>
+                      {module.name}
+                    </span>
                   </button>
                 </motion.div>
               );
