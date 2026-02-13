@@ -46,7 +46,7 @@ export default function App() {
 
   // 3D/Animation State
   const [buddyMood, setBuddyMood] = useState<'idle' | 'talking' | 'laughing' | 'waving'>('idle');
-  const [isBuddyTalking] = useState(false);
+  const [isBuddyTalking, setIsBuddyTalking] = useState(false);
 
   // Animation State
   const [showConfetti, setShowConfetti] = useState(false);
@@ -337,28 +337,58 @@ export default function App() {
             </div>
           </div>
 
-          {/* ====== MODALS ====== */}
+          {/* ====== VOICE RECORDER SIDE PANEL (Buddy stays visible) ====== */}
           <AnimatePresence>
             {showVoiceRecorder && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="bg-white rounded-3xl p-8 max-w-4xl w-full"
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-4xl font-bold">Talk with Buddy!</h2>
+              <motion.div
+                initial={{ x: 400, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 400, opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed right-4 top-20 bottom-20 w-80 z-30 flex flex-col"
+              >
+                <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl flex flex-col h-full overflow-hidden">
+                  {/* Header */}
+                  <div className="flex justify-between items-center p-4 border-b border-white/10">
+                    <h2 className="text-xl font-bold text-white">Talk with Buddy</h2>
                     <button
-                      onClick={() => setShowVoiceRecorder(false)}
-                      className="text-4xl hover:scale-110 transition-transform"
+                      onClick={() => {
+                        setShowVoiceRecorder(false);
+                        setIsBuddyTalking(false);
+                        setBuddyMood('idle');
+                      }}
+                      className="text-white/60 hover:text-white text-2xl hover:scale-110 transition-all"
                     >
                       &#10005;
                     </button>
                   </div>
-                  <BuddyVoiceRecorder />
-                </motion.div>
-              </div>
+                  {/* Voice Recorder */}
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <BuddyVoiceRecorder
+                      compact
+                      onRecordingStart={() => {
+                        setBuddyMood('idle');
+                        setIsBuddyTalking(false);
+                      }}
+                      onRecordingStop={() => {
+                        setBuddyMood('idle');
+                      }}
+                      onPlaybackStart={() => {
+                        setBuddyMood('talking');
+                        setIsBuddyTalking(true);
+                      }}
+                      onPlaybackEnd={() => {
+                        setBuddyMood('idle');
+                        setIsBuddyTalking(false);
+                      }}
+                      onJokeTelling={() => {
+                        setBuddyMood('talking');
+                        setIsBuddyTalking(true);
+                      }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
 

@@ -99,15 +99,15 @@ function BuddyModel({ isTalking = false, mood = 'idle', onClick }: BuddyModelPro
   // Gentle idle bob
   useFrame((state) => {
     if (group.current && mood === 'idle' && !isTalking) {
-      group.current.position.y = 0.5 + Math.sin(state.clock.elapsedTime * 0.8) * 0.05;
+      group.current.position.y = 1.2 + Math.sin(state.clock.elapsedTime * 0.8) * 0.08;
     }
   });
 
   return (
     <group
       ref={group}
-      position={[0, 0.5, 0.8]}
-      scale={hovered ? 1.05 : 1}
+      position={[0, 1.2, 1.0]}
+      scale={hovered ? 2.15 : 2.0}
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
@@ -155,7 +155,7 @@ function TreehouseModel() {
   });
 
   return (
-    <group ref={group} position={[0, -1, 0]}>
+    <group ref={group} position={[0, -2, 0]} scale={2.5}>
       <primitive object={clonedScene} />
     </group>
   );
@@ -175,8 +175,8 @@ function ForestBackground() {
   }, [texture]);
 
   return (
-    <mesh scale={[-50, 50, 50]}>
-      <sphereGeometry args={[1, 64, 64]} />
+    <mesh scale={[-100, 100, 100]}>
+      <sphereGeometry args={[1, 128, 128]} />
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </mesh>
   );
@@ -233,8 +233,8 @@ function CameraController() {
   const { camera } = useThree();
 
   useEffect(() => {
-    camera.position.set(0, 2, 6);
-    camera.lookAt(0, 0.5, 0);
+    camera.position.set(0, 3, 10);
+    camera.lookAt(0, 1, 0);
   }, [camera]);
 
   return null;
@@ -306,12 +306,12 @@ export default function TreehouseScene({
         <OrbitControls
           enablePan={false}
           enableZoom={true}
-          minDistance={3}
-          maxDistance={12}
+          minDistance={5}
+          maxDistance={20}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
           autoRotate={false}
-          target={[0, 0.5, 0] as unknown as THREE.Vector3}
+          target={[0, 1, 0] as unknown as THREE.Vector3}
         />
       </Canvas>
 
