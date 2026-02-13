@@ -99,15 +99,15 @@ function BuddyModel({ isTalking = false, mood = 'idle', onClick }: BuddyModelPro
   // Gentle idle bob
   useFrame((state) => {
     if (group.current && mood === 'idle' && !isTalking) {
-      group.current.position.y = 2 + Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
+      group.current.position.y = 1.5 + Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
     }
   });
 
   return (
     <group
       ref={group}
-      position={[0, 2, 2.0]}
-      scale={hovered ? 3.15 : 3.0}
+      position={[-3.5, 1.5, 3]}
+      scale={hovered ? 6.3 : 6.0}
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
@@ -155,7 +155,7 @@ function TreehouseModel() {
   });
 
   return (
-    <group ref={group} position={[0, -5, 0]} scale={8.75}>
+    <group ref={group} position={[0, -5, 0]} scale={13}>
       <primitive object={clonedScene} />
     </group>
   );
@@ -171,12 +171,17 @@ function ForestBackground() {
     if (texture) {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.anisotropy = 16;
+      texture.generateMipmaps = true;
+      texture.needsUpdate = true;
     }
   }, [texture]);
 
   return (
-    <mesh scale={[-150, 150, 150]}>
-      <sphereGeometry args={[1, 128, 128]} />
+    <mesh scale={[-200, 200, 200]}>
+      <sphereGeometry args={[1, 256, 256]} />
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </mesh>
   );
@@ -233,7 +238,7 @@ function CameraController() {
   const { camera } = useThree();
 
   useEffect(() => {
-    camera.position.set(0, 4, 18);
+    camera.position.set(0, 5, 22);
     camera.lookAt(0, 1, 0);
   }, [camera]);
 
@@ -272,7 +277,7 @@ export default function TreehouseScene({
           failIfMajorPerformanceCaveat: false,
         }}
         dpr={[1, 2]}
-        camera={{ fov: 50, near: 0.1, far: 500 }}
+        camera={{ fov: 60, near: 0.1, far: 500 }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
@@ -306,8 +311,8 @@ export default function TreehouseScene({
         <OrbitControls
           enablePan={false}
           enableZoom={true}
-          minDistance={8}
-          maxDistance={35}
+          minDistance={10}
+          maxDistance={40}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
           autoRotate={false}
