@@ -6,9 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface VoiceRecorderProps {
   onPlayback?: () => void;
+  onRecordingStart?: () => void;
+  onRecordingStop?: () => void;
+  onPlaybackStart?: () => void;
+  onPlaybackEnd?: () => void;
+  onJokeTelling?: () => void;
+  compact?: boolean;
 }
 
-export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
+export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingStop, onPlaybackStart, onPlaybackEnd, onJokeTelling, compact = false }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -71,7 +77,8 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      setBuddyMessage("I'm listening! 👂");
+      setBuddyMessage("I'm listening!");
+      onRecordingStart?.();
 
       // Recording timer (max 10 seconds)
       timerRef.current = window.setInterval(() => {
@@ -96,6 +103,7 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
       setIsRecording(false);
       setHasRecording(true);
       setBuddyMessage("Got it! Let me play it back in my voice!");
+      onRecordingStop?.();
       
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -109,8 +117,9 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
 
     setIsPlaying(true);
     setBuddyMessage(funnyResponses[Math.floor(Math.random() * funnyResponses.length)]);
-    
-    if (onPlayback) onPlayback();
+
+    onPlayback?.();
+    onPlaybackStart?.();
 
     try {
       // Create audio blob
@@ -163,6 +172,7 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
       source.onended = () => {
         setIsPlaying(false);
         setBuddyMessage("That was fun! Want to record again?");
+        onPlaybackEnd?.();
       };
 
     } catch (error) {
@@ -182,12 +192,14 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
   const tellJoke = () => {
     const joke = jokes[Math.floor(Math.random() * jokes.length)];
     setBuddyMessage(joke);
-    
+    onJokeTelling?.();
+
     // Use speech synthesis for joke
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(joke);
       utterance.pitch = 1.3;
       utterance.rate = 0.9;
+      utterance.onend = () => onPlaybackEnd?.();
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -196,17 +208,26 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-8 shadow-2xl max-w-2xl mx-auto"
+      className={compact
+        ? "bg-black/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-white/20"
+        : "bg-gradient-to-br from-purple-100 to-pink-100 rounded-3xl p-8 shadow-2xl max-w-2xl mx-auto"
+      }
     >
       {/* Buddy's Speech Bubble */}
       <motion.div
         key={buddyMessage}
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-white rounded-3xl p-6 mb-8 shadow-lg relative"
+        className={compact
+          ? "bg-white/20 rounded-xl p-3 mb-4 shadow-lg relative"
+          : "bg-white rounded-3xl p-6 mb-8 shadow-lg relative"
+        }
       >
-        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[20px] border-t-white"></div>
-        <p className="text-2xl text-gray-800 text-center font-medium leading-relaxed">
+        {!compact && <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[20px] border-l-transparent border-r-[20px] border-r-transparent border-t-[20px] border-t-white"></div>}
+        <p className={compact
+          ? "text-base text-white text-center font-medium leading-relaxed"
+          : "text-2xl text-gray-800 text-center font-medium leading-relaxed"
+        }>
           {buddyMessage}
         </p>
       </motion.div>
@@ -234,16 +255,16 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             disabled={isPlaying}
-            className={`w-32 h-32 rounded-full shadow-2xl transition-all flex items-center justify-center ${
+            className={`${compact ? 'w-20 h-20' : 'w-32 h-32'} rounded-full shadow-2xl transition-all flex items-center justify-center ${
               isRecording
                 ? 'bg-red-500 hover:bg-red-600'
                 : 'bg-gradient-to-br from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
             } disabled:opacity-50`}
           >
             {isRecording ? (
-              <div className="text-6xl">⏹️</div>
+              <div className={compact ? "text-3xl" : "text-6xl"}>&#9209;&#65039;</div>
             ) : (
-              <div className="text-6xl">🎤</div>
+              <div className={compact ? "text-3xl" : "text-6xl"}>&#127908;</div>
             )}
           </motion.button>
         </div>
@@ -271,7 +292,7 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
               disabled={isPlaying}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-2xl font-bold rounded-2xl shadow-lg disabled:opacity-50 flex items-center gap-3"
+              className={`${compact ? 'px-4 py-2 text-sm' : 'px-8 py-4 text-2xl'} bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-2xl shadow-lg disabled:opacity-50 flex items-center gap-2`}
             >
               {isPlaying ? (
                 <>🔊 Playing...</>
@@ -289,7 +310,7 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
               onClick={clearRecording}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white text-2xl font-bold rounded-2xl shadow-lg"
+              className={`${compact ? 'px-4 py-2 text-sm' : 'px-8 py-4 text-2xl'} bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white font-bold rounded-2xl shadow-lg`}
             >
               🗑️ Clear
             </motion.button>
@@ -303,7 +324,7 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
               onClick={tellJoke}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white text-2xl font-bold rounded-2xl shadow-lg"
+              className={`${compact ? 'px-4 py-2 text-sm' : 'px-8 py-4 text-2xl'} bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold rounded-2xl shadow-lg`}
             >
               😂 Tell Me a Joke!
             </motion.button>
@@ -311,11 +332,13 @@ export function BuddyVoiceRecorder({ onPlayback }: VoiceRecorderProps) {
         </div>
 
         {/* Instructions */}
-        <div className="text-center text-gray-600 mt-4">
-          <p className="text-lg">
-            🎙️ Record your voice, and I'll repeat it in a silly voice!
-          </p>
-        </div>
+        {!compact && (
+          <div className="text-center text-gray-600 mt-4">
+            <p className="text-lg">
+              Record your voice, and I'll repeat it in a silly voice!
+            </p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
