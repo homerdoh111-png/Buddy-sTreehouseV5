@@ -45,9 +45,16 @@ export interface Module {
 }
 
 // Placeholder components for base modules (these would normally exist)
-const PlaceholderActivity = () => (
+const PlaceholderActivity = ({ level, onComplete }: { level: any; onComplete: (stars: number) => void }) => (
   <div className="text-center py-12">
-    <p className="text-2xl text-gray-600">Activity Coming Soon!</p>
+    <div className="text-6xl mb-6">🚧</div>
+    <p className="text-2xl text-gray-600 mb-6">Activity Coming Soon!</p>
+    <button
+      onClick={() => onComplete(level?.starsReward || 3)}
+      className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xl font-bold rounded-2xl hover:scale-105 transition-all shadow-lg"
+    >
+      Complete & Earn Stars
+    </button>
   </div>
 );
 

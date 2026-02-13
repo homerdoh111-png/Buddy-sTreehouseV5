@@ -38,7 +38,7 @@ export default function App() {
   const [backgroundMusicEnabled, setBackgroundMusicEnabled] = useState(true);
 
   // Store
-  const { totalStars } = useBuddyStore();
+  const { totalStars, completeActivity } = useBuddyStore();
 
   // 🎵 INITIALIZE AUDIO SYSTEM
   useEffect(() => {
@@ -101,6 +101,11 @@ export default function App() {
 
   // Handle activity completion
   const handleActivityComplete = (stars: number) => {
+    // Save progress to store
+    if (selectedActivity) {
+      completeActivity(selectedActivity.id, stars);
+    }
+
     // Show star collection
     setShowStarCollection(stars);
     playStar();
