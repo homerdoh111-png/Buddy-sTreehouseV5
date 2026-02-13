@@ -99,15 +99,15 @@ function BuddyModel({ isTalking = false, mood = 'idle', onClick }: BuddyModelPro
   // Gentle idle bob
   useFrame((state) => {
     if (group.current && mood === 'idle' && !isTalking) {
-      group.current.position.y = 1.2 + Math.sin(state.clock.elapsedTime * 0.8) * 0.08;
+      group.current.position.y = 2 + Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
     }
   });
 
   return (
     <group
       ref={group}
-      position={[0, 1.2, 1.0]}
-      scale={hovered ? 2.15 : 2.0}
+      position={[0, 2, 2.0]}
+      scale={hovered ? 3.15 : 3.0}
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
@@ -155,7 +155,7 @@ function TreehouseModel() {
   });
 
   return (
-    <group ref={group} position={[0, -2, 0]} scale={2.5}>
+    <group ref={group} position={[0, -5, 0]} scale={8.75}>
       <primitive object={clonedScene} />
     </group>
   );
@@ -175,7 +175,7 @@ function ForestBackground() {
   }, [texture]);
 
   return (
-    <mesh scale={[-100, 100, 100]}>
+    <mesh scale={[-150, 150, 150]}>
       <sphereGeometry args={[1, 128, 128]} />
       <meshBasicMaterial map={texture} side={THREE.BackSide} />
     </mesh>
@@ -233,7 +233,7 @@ function CameraController() {
   const { camera } = useThree();
 
   useEffect(() => {
-    camera.position.set(0, 3, 10);
+    camera.position.set(0, 4, 18);
     camera.lookAt(0, 1, 0);
   }, [camera]);
 
@@ -272,7 +272,7 @@ export default function TreehouseScene({
           failIfMajorPerformanceCaveat: false,
         }}
         dpr={[1, 2]}
-        camera={{ fov: 50, near: 0.1, far: 100 }}
+        camera={{ fov: 50, near: 0.1, far: 500 }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.0;
@@ -306,8 +306,8 @@ export default function TreehouseScene({
         <OrbitControls
           enablePan={false}
           enableZoom={true}
-          minDistance={5}
-          maxDistance={20}
+          minDistance={8}
+          maxDistance={35}
           minPolarAngle={Math.PI / 6}
           maxPolarAngle={Math.PI / 2.2}
           autoRotate={false}
