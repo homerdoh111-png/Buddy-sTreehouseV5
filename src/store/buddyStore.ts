@@ -1,163 +1,223 @@
+// Buddy Store - State Management with Zustand
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ACHIEVEMENTS } from '../config/activities.config';
+
+interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  unlockedAt?: Date;
+}
 
 interface ActivityProgress {
-  completed: boolean;
-  starsEarned: number;
-  attempts: number;
-  lastPlayed: string | null;
+  [activityId: string]: {
+    completed: boolean;
+    starsEarned: number;
+    attempts: number;
+    lastPlayed?: Date;
+  };
 }
 
 interface BuddyState {
-  // User info
-  playerName: string;
-  setPlayerName: (name: string) => void;
-
-  // Progress tracking
-  activityProgress: Record<string, ActivityProgress>;
-  completeActivity: (activityId: string, starsEarned: number) => void;
-  getActivityProgress: (activityId: string) => ActivityProgress;
-
-  // Stats
+  // Progress
   totalStars: number;
-  totalCompleted: number;
-  streak: number;
-
+  level: number;
+  activityProgress: ActivityProgress;
+  
   // Achievements
-  unlockedAchievements: string[];
-  newAchievement: string | null;
-  clearNewAchievement: () => void;
-
-  // UI State
-  currentScreen: 'splash' | 'menu' | 'module' | 'activity' | 'parent';
-  setCurrentScreen: (screen: BuddyState['currentScreen']) => void;
-  currentModuleId: string | null;
-  setCurrentModuleId: (id: string | null) => void;
-  currentActivityId: string | null;
-  setCurrentActivityId: (id: string | null) => void;
-
+  achievements: Achievement[];
+  
   // Settings
   soundEnabled: boolean;
+  musicEnabled: boolean;
+  
+  // Actions
+  addStars: (amount: number) => void;
+  completeActivity: (activityId: string, starsEarned: number) => void;
+  unlockAchievement: (achievementId: string) => void;
   toggleSound: () => void;
-  musicVolume: number;
-  setMusicVolume: (volume: number) => void;
-
-  // Session
-  sessionStartTime: string;
-  sessionsCompleted: number;
-
-  // Reset
+  toggleMusic: () => void;
   resetProgress: () => void;
 }
 
-const defaultProgress: ActivityProgress = {
-  completed: false,
-  starsEarned: 0,
-  attempts: 0,
-  lastPlayed: null,
-};
+const initialAchievements: Achievement[] = [
+  {
+    id: 'first_star',
+    title: 'First Star',
+    description: 'Earn your very first star!',
+    icon: '⭐',
+    unlocked: false,
+  },
+  {
+    id: 'ten_stars',
+    title: 'Star Collector',
+    description: 'Collect 10 stars',
+    icon: '🌟',
+    unlocked: false,
+  },
+  {
+    id: 'twenty_five_stars',
+    title: 'Rising Star',
+    description: 'Collect 25 stars',
+    icon: '✨',
+    unlocked: false,
+  },
+  {
+    id: 'fifty_stars',
+    title: 'Star Master',
+    description: 'Collect 50 stars',
+    icon: '💫',
+    unlocked: false,
+  },
+  {
+    id: 'complete_module',
+    title: 'Module Master',
+    description: 'Complete all activities in a module',
+    icon: '🎓',
+    unlocked: false,
+  },
+  {
+    id: 'perfect_score',
+    title: 'Perfect Performance',
+    description: 'Get a perfect score on any activity',
+    icon: '🏆',
+    unlocked: false,
+  },
+  {
+    id: 'five_days_streak',
+    title: 'Consistent Learner',
+    description: 'Play for 5 days in a row',
+    icon: '🔥',
+    unlocked: false,
+  },
+  {
+    id: 'all_modules',
+    title: 'Learning Champion',
+    description: 'Unlock all learning modules',
+    icon: '👑',
+    unlocked: false,
+  },
+  {
+    id: 'hundred_stars',
+    title: 'Century Star',
+    description: 'Collect 100 stars',
+    icon: '🌠',
+    unlocked: false,
+  },
+  {
+    id: 'complete_all',
+    title: 'Ultimate Explorer',
+    description: 'Complete all activities',
+    icon: '🎯',
+    unlocked: false,
+  },
+];
 
 export const useBuddyStore = create<BuddyState>()(
   persist(
     (set, get) => ({
-      playerName: 'Buddy',
-      setPlayerName: (name) => set({ playerName: name }),
-
+      // Initial State
+      totalStars: 0,
+      level: 1,
       activityProgress: {},
-      completeActivity: (activityId, starsEarned) => {
-        const state = get();
-        const prev = state.activityProgress[activityId] || { ...defaultProgress };
-        const isNewCompletion = !prev.completed;
-        const starDiff = Math.max(0, starsEarned - prev.starsEarned);
+      achievements: initialAchievements,
+      soundEnabled: true,
+      musicEnabled: true,
 
-        const newProgress = {
-          ...state.activityProgress,
-          [activityId]: {
-            completed: true,
-            starsEarned: Math.max(prev.starsEarned, starsEarned),
-            attempts: prev.attempts + 1,
-            lastPlayed: new Date().toISOString(),
-          },
-        };
+      // Add Stars
+      addStars: (amount: number) => {
+        set((state) => {
+          const newTotal = state.totalStars + amount;
+          const newLevel = Math.floor(newTotal / 10) + 1;
+          
+          // Check for star-based achievements
+          const updatedAchievements = state.achievements.map((ach) => {
+            if (!ach.unlocked) {
+              if (ach.id === 'first_star' && newTotal >= 1) {
+                return { ...ach, unlocked: true, unlockedAt: new Date() };
+              }
+              if (ach.id === 'ten_stars' && newTotal >= 10) {
+                return { ...ach, unlocked: true, unlockedAt: new Date() };
+              }
+              if (ach.id === 'twenty_five_stars' && newTotal >= 25) {
+                return { ...ach, unlocked: true, unlockedAt: new Date() };
+              }
+              if (ach.id === 'fifty_stars' && newTotal >= 50) {
+                return { ...ach, unlocked: true, unlockedAt: new Date() };
+              }
+              if (ach.id === 'hundred_stars' && newTotal >= 100) {
+                return { ...ach, unlocked: true, unlockedAt: new Date() };
+              }
+            }
+            return ach;
+          });
 
-        const newTotalStars = state.totalStars + starDiff;
-        const newTotalCompleted = state.totalCompleted + (isNewCompletion ? 1 : 0);
-        const newStreak = state.streak + (isNewCompletion ? 1 : 0);
-
-        // Check achievements
-        let newAchievement: string | null = null;
-        const unlocked = [...state.unlockedAchievements];
-
-        for (const achievement of ACHIEVEMENTS) {
-          if (unlocked.includes(achievement.id)) continue;
-
-          let earned = false;
-          if (achievement.id.includes('star')) {
-            earned = newTotalStars >= achievement.requirement;
-          } else if (achievement.id.includes('module')) {
-            earned = newTotalCompleted >= achievement.requirement * 4;
-          } else if (achievement.id.includes('streak')) {
-            earned = newStreak >= achievement.requirement;
-          } else {
-            earned = newTotalCompleted >= achievement.requirement;
-          }
-
-          if (earned) {
-            unlocked.push(achievement.id);
-            newAchievement = achievement.id;
-          }
-        }
-
-        set({
-          activityProgress: newProgress,
-          totalStars: newTotalStars,
-          totalCompleted: newTotalCompleted,
-          streak: newStreak,
-          unlockedAchievements: unlocked,
-          newAchievement,
+          return {
+            totalStars: newTotal,
+            level: newLevel,
+            achievements: updatedAchievements,
+          };
         });
       },
-      getActivityProgress: (activityId) => {
-        return get().activityProgress[activityId] || { ...defaultProgress };
+
+      // Complete Activity
+      completeActivity: (activityId: string, starsEarned: number) => {
+        set((state) => {
+          const progress = state.activityProgress[activityId] || {
+            completed: false,
+            starsEarned: 0,
+            attempts: 0,
+          };
+
+          const updatedProgress = {
+            ...state.activityProgress,
+            [activityId]: {
+              completed: true,
+              starsEarned: Math.max(progress.starsEarned, starsEarned),
+              attempts: progress.attempts + 1,
+              lastPlayed: new Date(),
+            },
+          };
+
+          return {
+            activityProgress: updatedProgress,
+          };
+        });
+
+        // Add stars
+        get().addStars(starsEarned);
       },
 
-      totalStars: 0,
-      totalCompleted: 0,
-      streak: 0,
+      // Unlock Achievement
+      unlockAchievement: (achievementId: string) => {
+        set((state) => ({
+          achievements: state.achievements.map((ach) =>
+            ach.id === achievementId && !ach.unlocked
+              ? { ...ach, unlocked: true, unlockedAt: new Date() }
+              : ach
+          ),
+        }));
+      },
 
-      unlockedAchievements: [],
-      newAchievement: null,
-      clearNewAchievement: () => set({ newAchievement: null }),
-
-      currentScreen: 'splash',
-      setCurrentScreen: (screen) => set({ currentScreen: screen }),
-      currentModuleId: null,
-      setCurrentModuleId: (id) => set({ currentModuleId: id }),
-      currentActivityId: null,
-      setCurrentActivityId: (id) => set({ currentActivityId: id }),
-
-      soundEnabled: true,
+      // Toggle Sound
       toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
-      musicVolume: 0.5,
-      setMusicVolume: (volume) => set({ musicVolume: volume }),
 
-      sessionStartTime: new Date().toISOString(),
-      sessionsCompleted: 0,
+      // Toggle Music
+      toggleMusic: () => set((state) => ({ musicEnabled: !state.musicEnabled })),
 
+      // Reset Progress
       resetProgress: () =>
         set({
-          activityProgress: {},
           totalStars: 0,
-          totalCompleted: 0,
-          streak: 0,
-          unlockedAchievements: [],
-          newAchievement: null,
-          sessionsCompleted: 0,
+          level: 1,
+          activityProgress: {},
+          achievements: initialAchievements,
         }),
     }),
     {
-      name: 'buddy-treehouse-storage',
+      name: 'buddy-storage',
     }
   )
 );

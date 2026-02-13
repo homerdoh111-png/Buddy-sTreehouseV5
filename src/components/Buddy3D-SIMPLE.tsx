@@ -1,87 +1,93 @@
+// Buddy 3D Character - Simplified Version
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 
-interface Buddy3DProps {
-  size?: 'small' | 'medium' | 'large';
+interface Buddy3DSimpleProps {
   mood?: 'happy' | 'excited' | 'thinking' | 'celebrating';
   onClick?: () => void;
+  className?: string;
 }
 
-const MOODS = {
-  happy: { emoji: '🐻', animation: { rotate: [-3, 3, -3] } },
-  excited: { emoji: '🐻', animation: { scale: [1, 1.1, 1], rotate: [-5, 5, -5] } },
-  thinking: { emoji: '🐻', animation: { y: [0, -5, 0] } },
-  celebrating: { emoji: '🐻', animation: { rotate: [-10, 10, -10], scale: [1, 1.2, 1] } },
-};
-
-const SIZES = {
-  small: 'text-6xl',
-  medium: 'text-8xl',
-  large: 'text-[120px]',
-};
-
-export default function Buddy3DSimple({ size = 'medium', mood = 'happy', onClick }: Buddy3DProps) {
-  const [isClicked, setIsClicked] = useState(false);
-  const config = MOODS[mood];
-  const sizeClass = SIZES[size];
-
-  const handleClick = () => {
-    setIsClicked(true);
-    setTimeout(() => setIsClicked(false), 500);
-    onClick?.();
+export default function Buddy3DSimple({ 
+  mood = 'happy', 
+  onClick,
+  className = '' 
+}: Buddy3DSimpleProps) {
+  
+  const getMoodAnimation = () => {
+    switch (mood) {
+      case 'excited':
+        return {
+          scale: [1, 1.1, 1],
+          rotate: [0, -5, 5, 0],
+          transition: { repeat: Infinity, duration: 1 }
+        };
+      case 'thinking':
+        return {
+          rotate: [0, -3, 3, 0],
+          transition: { repeat: Infinity, duration: 2 }
+        };
+      case 'celebrating':
+        return {
+          y: [0, -20, 0],
+          rotate: [0, 360],
+          transition: { repeat: Infinity, duration: 1.5 }
+        };
+      default: // happy
+        return {
+          y: [0, -10, 0],
+          transition: { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+        };
+    }
   };
 
   return (
     <motion.div
-      className={`${sizeClass} cursor-pointer select-none relative inline-block`}
-      animate={isClicked ? { scale: [1, 1.3, 1], rotate: [0, 360] } : config.animation}
-      transition={
-        isClicked
-          ? { duration: 0.5 }
-          : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-      }
-      onClick={handleClick}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.9 }}
+      animate={getMoodAnimation()}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className={`cursor-pointer select-none ${className}`}
+      style={{ width: 120, height: 120 }}
     >
-      {config.emoji}
-      {/* Speech bubble on click */}
-      {isClicked && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: -20 }}
-          exit={{ opacity: 0 }}
-          className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white rounded-xl px-3 py-1 shadow-md text-sm font-body whitespace-nowrap"
-        >
-          {mood === 'celebrating' ? 'Woohoo! 🎉' : mood === 'thinking' ? 'Hmm... 🤔' : 'Hi there! 👋'}
-        </motion.div>
-      )}
-      {/* Stars around Buddy when celebrating */}
-      {mood === 'celebrating' && (
-        <>
-          <motion.span
-            className="absolute -top-2 -left-2 text-xl"
-            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-          >
-            ⭐
-          </motion.span>
-          <motion.span
-            className="absolute -top-2 -right-2 text-xl"
-            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.3 }}
-          >
-            ✨
-          </motion.span>
-          <motion.span
-            className="absolute -bottom-2 left-0 text-xl"
-            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.2, 0.5] }}
-            transition={{ duration: 1, repeat: Infinity, delay: 0.6 }}
-          >
-            🌟
-          </motion.span>
-        </>
-      )}
+      <div className="relative w-full h-full">
+        {/* Buddy's Body */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-600 to-amber-700 rounded-full shadow-2xl">
+          {/* Face */}
+          <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 w-16 h-16">
+            {/* Eyes */}
+            <div className="flex gap-4 justify-center mb-2">
+              <motion.div 
+                className="w-3 h-3 bg-white rounded-full"
+                animate={{ scale: [1, 0.8, 1] }}
+                transition={{ repeat: Infinity, duration: 3 }}
+              >
+                <div className="w-1.5 h-1.5 bg-black rounded-full ml-1 mt-0.5" />
+              </motion.div>
+              <motion.div 
+                className="w-3 h-3 bg-white rounded-full"
+                animate={{ scale: [1, 0.8, 1] }}
+                transition={{ repeat: Infinity, duration: 3 }}
+              >
+                <div className="w-1.5 h-1.5 bg-black rounded-full ml-1 mt-0.5" />
+              </motion.div>
+            </div>
+            
+            {/* Nose */}
+            <div className="w-2 h-1.5 bg-amber-900 rounded-full mx-auto mb-1" />
+            
+            {/* Mouth */}
+            <motion.div 
+              className="w-6 h-3 border-2 border-amber-900 rounded-b-full mx-auto"
+              animate={mood === 'celebrating' ? { scaleX: [1, 1.2, 1] } : {}}
+              transition={{ repeat: Infinity, duration: 0.5 }}
+            />
+          </div>
+          
+          {/* Ears */}
+          <div className="absolute top-2 left-2 w-6 h-8 bg-amber-600 rounded-full transform -rotate-45" />
+          <div className="absolute top-2 right-2 w-6 h-8 bg-amber-600 rounded-full transform rotate-45" />
+        </div>
+      </div>
     </motion.div>
   );
 }
