@@ -1,5 +1,5 @@
 // TreehouseScene.tsx - Main 3D scene with treehouse, Buddy, and forest background
-import { Component, Suspense, useRef, useEffect, useState, type ReactNode } from 'react';
+import { Component, Suspense, useRef, useEffect, useState, useMemo, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
   OrbitControls,
@@ -62,8 +62,8 @@ function BuddyModel({ isTalking = false, mood = 'idle', onClick }: BuddyModelPro
   const { actions } = useAnimations(animations, group);
   const [hovered, setHovered] = useState(false);
 
-  // Clone the scene so it's safe to reuse
-  const clonedScene = scene.clone(true);
+  // Clone once so useGLTF's shared scene isn't mutated
+  const clonedScene = useMemo(() => scene.clone(true), [scene]);
 
   // Play the appropriate animation based on mood
   useEffect(() => {
@@ -150,7 +150,7 @@ interface TreehouseModelProps {
 function TreehouseModel({ onClick, isUnlocked = false }: TreehouseModelProps) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF('/models/treehouse.glb');
-  const clonedScene = scene.clone(true);
+  const clonedScene = useMemo(() => scene.clone(true), [scene]);
   const [hovered, setHovered] = useState(false);
 
   // Gentle sway animation
