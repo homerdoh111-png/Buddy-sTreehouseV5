@@ -199,7 +199,7 @@ export default function BedtimeGame({ onClose, onComplete }: BedtimeGameProps) {
               className="text-center"
             >
               <div className="text-[90px] leading-none">
-                {step === 'sleeping' || step === 'lights_off' ? '&#128564;' : step === 'tucked' ? '&#128522;' : '&#128059;'}
+                {step === 'sleeping' || step === 'lights_off' ? '\uD83D\uDE34' : step === 'tucked' ? '\uD83D\uDE0A' : '\uD83D\uDC3B'}
               </div>
             </motion.div>
           </button>

@@ -1,6 +1,6 @@
 // Basketball Game - Tap to shoot hoops with Buddy!
 // Inspired by Talking Tom 2 mini-games
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface BasketballGameProps {
@@ -17,6 +17,10 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
   const [gameOver, setGameOver] = useState(false);
   const maxShots = 10;
 
+  // Use refs to avoid stale closures in setTimeout chains
+  const attemptsRef = useRef(0);
+  attemptsRef.current = attempts;
+
   const shoot = useCallback(() => {
     if (shooting || gameOver) return;
     setShooting(true);
@@ -25,8 +29,9 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
     const scored = Math.random() > 0.35; // 65% chance to score
 
     setTimeout(() => {
-      const newAttempts = attempts + 1;
+      const newAttempts = attemptsRef.current + 1;
       setAttempts(newAttempts);
+      attemptsRef.current = newAttempts;
 
       if (scored) {
         setScore((s) => s + 1);
@@ -47,7 +52,7 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
         }
       }, 1200);
     }, 800);
-  }, [shooting, attempts, gameOver]);
+  }, [shooting, gameOver]);
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-b from-sky-400 via-sky-300 to-green-400 flex flex-col touch-none select-none">
@@ -131,7 +136,7 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
               backgroundImage: 'radial-gradient(circle at 35% 35%, #f97316, #c2410c)',
             }}
           >
-            <span className="drop-shadow-md text-4xl">&#127936;</span>
+            <span className="drop-shadow-md text-4xl">{'\uD83C\uDFC0'}</span>
           </button>
         </motion.div>
 
@@ -149,7 +154,7 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
             className="text-center"
           >
             <div className="text-[80px] leading-none">
-              {buddyReaction === 'celebrate' ? '&#129395;' : buddyReaction === 'sad' ? '&#128533;' : '&#128059;'}
+              {buddyReaction === 'celebrate' ? '\uD83E\uDD73' : buddyReaction === 'sad' ? '\uD83D\uDE15' : '\uD83D\uDC3B'}
             </div>
             <AnimatePresence>
               {buddyReaction === 'celebrate' && (
@@ -193,7 +198,7 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
               transition={{ type: 'spring', damping: 12 }}
               className="bg-white rounded-3xl p-8 mx-6 text-center shadow-2xl max-w-sm w-full"
             >
-              <div className="text-6xl mb-4">&#127942;</div>
+              <div className="text-6xl mb-4">{'\uD83C\uDFC6'}</div>
               <h2 className="text-3xl font-black text-gray-800 mb-2">Game Over!</h2>
               <p className="text-5xl font-black text-orange-500 mb-2">
                 {score}/{maxShots}
@@ -206,6 +211,7 @@ export default function BasketballGame({ onClose, onComplete }: BasketballGamePr
                   onClick={() => {
                     setScore(0);
                     setAttempts(0);
+                    attemptsRef.current = 0;
                     setGameOver(false);
                     setShooting(false);
                     setLastResult('none');

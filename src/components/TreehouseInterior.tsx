@@ -1,7 +1,7 @@
 // TreehouseInterior - Buddy's cozy room with fun activity stations
 // Inspired by Talking Tom 2's room interface
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import BasketballGame from './funActivities/BasketballGame';
 import FeedingGame from './funActivities/FeedingGame';
 import BedtimeGame from './funActivities/BedtimeGame';
