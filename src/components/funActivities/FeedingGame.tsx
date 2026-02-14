@@ -1,6 +1,6 @@
-// Feeding Game - Drag food to Buddy to make him happy!
+// Feeding Game - Tap food to feed Buddy and make him happy!
 // Inspired by Talking Tom 2 feeding mechanic
-import { useState, useRef, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FeedingGameProps {
@@ -9,14 +9,14 @@ interface FeedingGameProps {
 }
 
 const FOOD_ITEMS = [
-  { id: 'apple', emoji: '&#127822;', name: 'Apple', happiness: 15, healthy: true },
-  { id: 'banana', emoji: '&#127820;', name: 'Banana', happiness: 12, healthy: true },
-  { id: 'pizza', emoji: '&#127829;', name: 'Pizza', happiness: 20, healthy: false },
-  { id: 'cookie', emoji: '&#127850;', name: 'Cookie', happiness: 18, healthy: false },
-  { id: 'broccoli', emoji: '&#129382;', name: 'Broccoli', happiness: 10, healthy: true },
-  { id: 'cake', emoji: '&#127856;', name: 'Cake', happiness: 22, healthy: false },
-  { id: 'watermelon', emoji: '&#127817;', name: 'Watermelon', happiness: 14, healthy: true },
-  { id: 'icecream', emoji: '&#127846;', name: 'Ice Cream', happiness: 20, healthy: false },
+  { id: 'apple', emoji: '\uD83C\uDF4E', name: 'Apple', happiness: 15, healthy: true },
+  { id: 'banana', emoji: '\uD83C\uDF4C', name: 'Banana', happiness: 12, healthy: true },
+  { id: 'pizza', emoji: '\uD83C\uDF55', name: 'Pizza', happiness: 20, healthy: false },
+  { id: 'cookie', emoji: '\uD83C\uDF6A', name: 'Cookie', happiness: 18, healthy: false },
+  { id: 'broccoli', emoji: '\uD83E\uDD66', name: 'Broccoli', happiness: 10, healthy: true },
+  { id: 'cake', emoji: '\uD83C\uDF70', name: 'Cake', happiness: 22, healthy: false },
+  { id: 'watermelon', emoji: '\uD83C\uDF49', name: 'Watermelon', happiness: 14, healthy: true },
+  { id: 'icecream', emoji: '\uD83C\uDF66', name: 'Ice Cream', happiness: 20, healthy: false },
 ];
 
 export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
@@ -26,8 +26,13 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
   const [flyingFood, setFlyingFood] = useState<{ id: string; emoji: string } | null>(null);
   const [reaction, setReaction] = useState('');
   const [gameComplete, setGameComplete] = useState(false);
-  const buddyRef = useRef<HTMLDivElement>(null);
   const maxFeedings = 6;
+
+  // Use refs to avoid stale closures in setTimeout chains
+  const happinessRef = useRef(0);
+  happinessRef.current = happiness;
+  const feedCountRef = useRef(0);
+  feedCountRef.current = feedCount;
 
   const feedBuddy = useCallback((food: typeof FOOD_ITEMS[0]) => {
     if (buddyState === 'eating' || gameComplete) return;
@@ -38,10 +43,13 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
     // Food reaches Buddy
     setTimeout(() => {
       setFlyingFood(null);
-      const newHappiness = Math.min(100, happiness + food.happiness);
+      const newHappiness = Math.min(100, happinessRef.current + food.happiness);
       setHappiness(newHappiness);
-      const newFeedCount = feedCount + 1;
+      happinessRef.current = newHappiness;
+
+      const newFeedCount = feedCountRef.current + 1;
       setFeedCount(newFeedCount);
+      feedCountRef.current = newFeedCount;
 
       if (food.healthy) {
         setReaction('Yummy and healthy!');
@@ -62,7 +70,7 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
         }, 800);
       }, 600);
     }, 500);
-  }, [buddyState, happiness, feedCount, gameComplete]);
+  }, [buddyState, gameComplete]);
 
   const getBuddyEmoji = () => {
     switch (buddyState) {
@@ -90,7 +98,7 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
       {/* Happiness Meter */}
       <div className="px-6 mb-4">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-lg">&#128150;</span>
+          <span className="text-lg">{'\uD83D\uDC96'}</span>
           <span className="text-sm font-bold text-amber-800">Happiness</span>
           <span className="text-sm text-amber-600 ml-auto">{happiness}%</span>
         </div>
@@ -110,7 +118,7 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
         <div className="absolute bottom-[22%] w-[60%] h-3 bg-amber-800/30 rounded-full blur-sm" />
 
         {/* Buddy */}
-        <div ref={buddyRef} className="relative mb-8">
+        <div className="relative mb-8">
           <motion.div
             animate={
               buddyState === 'eating'
@@ -122,7 +130,7 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <div className="text-[120px] leading-none" dangerouslySetInnerHTML={{ __html: getBuddyEmoji() }} />
+            <div className="text-[120px] leading-none">{getBuddyEmoji()}</div>
           </motion.div>
 
           {/* Speech bubble reaction */}
@@ -150,8 +158,9 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
               exit={{ opacity: 0, scale: 0 }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
               className="absolute bottom-[35%] text-5xl pointer-events-none z-20"
-              dangerouslySetInnerHTML={{ __html: flyingFood.emoji }}
-            />
+            >
+              {flyingFood.emoji}
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
@@ -166,7 +175,7 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
               disabled={buddyState === 'eating' || gameComplete}
               className="w-[72px] h-[72px] rounded-2xl bg-white shadow-md flex items-center justify-center text-4xl active:scale-90 transition-transform disabled:opacity-40 border-2 border-amber-200"
             >
-              <span dangerouslySetInnerHTML={{ __html: food.emoji }} />
+              {food.emoji}
             </button>
           ))}
         </div>
@@ -186,7 +195,7 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
               transition={{ type: 'spring', damping: 12 }}
               className="bg-white rounded-3xl p-8 mx-6 text-center shadow-2xl max-w-sm w-full"
             >
-              <div className="text-6xl mb-4">&#128523;</div>
+              <div className="text-6xl mb-4">{'\uD83D\uDE0B'}</div>
               <h2 className="text-3xl font-black text-gray-800 mb-2">Buddy is full!</h2>
               <p className="text-lg text-gray-500 mb-6">
                 You made Buddy so happy!
@@ -195,7 +204,9 @@ export default function FeedingGame({ onClose, onComplete }: FeedingGameProps) {
                 <button
                   onClick={() => {
                     setHappiness(0);
+                    happinessRef.current = 0;
                     setFeedCount(0);
+                    feedCountRef.current = 0;
                     setBuddyState('hungry');
                     setGameComplete(false);
                     setReaction('');
