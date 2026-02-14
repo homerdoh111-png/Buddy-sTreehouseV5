@@ -140,12 +140,18 @@ function getAnimationName(mood: string, actions: Record<string, THREE.AnimationA
 }
 
 // ============================================================
-// TREEHOUSE 3D MODEL
+// TREEHOUSE 3D MODEL (clickable)
 // ============================================================
-function TreehouseModel() {
+interface TreehouseModelProps {
+  onClick?: () => void;
+  isUnlocked?: boolean;
+}
+
+function TreehouseModel({ onClick, isUnlocked = false }: TreehouseModelProps) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF('/models/treehouse.glb');
   const clonedScene = scene.clone(true);
+  const [hovered, setHovered] = useState(false);
 
   // Gentle sway animation
   useFrame((state) => {
@@ -155,7 +161,14 @@ function TreehouseModel() {
   });
 
   return (
-    <group ref={group} position={[0, -5, 0]} scale={13}>
+    <group
+      ref={group}
+      position={[0, -5, 0]}
+      scale={hovered && isUnlocked ? 13.3 : 13}
+      onClick={(e) => { e.stopPropagation(); onClick?.(); }}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(true); if (isUnlocked) document.body.style.cursor = 'pointer'; }}
+      onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
+    >
       <primitive object={clonedScene} />
     </group>
   );
@@ -252,12 +265,16 @@ interface TreehouseSceneProps {
   buddyMood?: 'idle' | 'talking' | 'laughing' | 'waving';
   isBuddyTalking?: boolean;
   onBuddyClick?: () => void;
+  onTreehouseClick?: () => void;
+  treehouseUnlocked?: boolean;
 }
 
 export default function TreehouseScene({
   buddyMood = 'idle',
   isBuddyTalking = false,
   onBuddyClick,
+  onTreehouseClick,
+  treehouseUnlocked = false,
 }: TreehouseSceneProps) {
   const [loadErrors, setLoadErrors] = useState<string[]>([]);
 
@@ -294,7 +311,7 @@ export default function TreehouseScene({
 
           {/* Treehouse */}
           <ModelErrorBoundary onError={handleModelError('treehouse')}>
-            <TreehouseModel />
+            <TreehouseModel onClick={onTreehouseClick} isUnlocked={treehouseUnlocked} />
           </ModelErrorBoundary>
 
           {/* Buddy */}
