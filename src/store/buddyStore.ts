@@ -20,22 +20,35 @@ interface ActivityProgress {
   };
 }
 
+interface FunActivityRecord {
+  timesPlayed: number;
+  lastPlayed?: Date;
+}
+
 interface BuddyState {
   // Progress
   totalStars: number;
   level: number;
   activityProgress: ActivityProgress;
-  
+
+  // Fun Activities (Treehouse Interior)
+  funActivitiesPlayed: Record<string, FunActivityRecord>;
+  buddyHappiness: number; // 0-100, affected by fun activities
+  buddyEnergy: number;    // 0-100, decreases over play, restored by bedtime
+
   // Achievements
   achievements: Achievement[];
-  
+
   // Settings
   soundEnabled: boolean;
   musicEnabled: boolean;
-  
+
   // Actions
   addStars: (amount: number) => void;
   completeActivity: (activityId: string, starsEarned: number) => void;
+  playFunActivity: (activityId: string) => void;
+  setBuddyHappiness: (value: number) => void;
+  setBuddyEnergy: (value: number) => void;
   unlockAchievement: (achievementId: string) => void;
   toggleSound: () => void;
   toggleMusic: () => void;
@@ -122,6 +135,9 @@ export const useBuddyStore = create<BuddyState>()(
       totalStars: 0,
       level: 1,
       activityProgress: {},
+      funActivitiesPlayed: {},
+      buddyHappiness: 70,
+      buddyEnergy: 100,
       achievements: initialAchievements,
       soundEnabled: true,
       musicEnabled: true,
@@ -190,6 +206,32 @@ export const useBuddyStore = create<BuddyState>()(
         get().addStars(starsEarned);
       },
 
+      // Play Fun Activity
+      playFunActivity: (activityId: string) => {
+        set((state) => {
+          const existing = state.funActivitiesPlayed[activityId] || { timesPlayed: 0 };
+          return {
+            funActivitiesPlayed: {
+              ...state.funActivitiesPlayed,
+              [activityId]: {
+                timesPlayed: existing.timesPlayed + 1,
+                lastPlayed: new Date(),
+              },
+            },
+          };
+        });
+      },
+
+      // Set Buddy Happiness
+      setBuddyHappiness: (value: number) => {
+        set({ buddyHappiness: Math.max(0, Math.min(100, value)) });
+      },
+
+      // Set Buddy Energy
+      setBuddyEnergy: (value: number) => {
+        set({ buddyEnergy: Math.max(0, Math.min(100, value)) });
+      },
+
       // Unlock Achievement
       unlockAchievement: (achievementId: string) => {
         set((state) => ({
@@ -213,6 +255,9 @@ export const useBuddyStore = create<BuddyState>()(
           totalStars: 0,
           level: 1,
           activityProgress: {},
+          funActivitiesPlayed: {},
+          buddyHappiness: 70,
+          buddyEnergy: 100,
           achievements: initialAchievements,
         }),
     }),

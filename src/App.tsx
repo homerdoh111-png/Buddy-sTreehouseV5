@@ -1,13 +1,13 @@
 // Buddy's Treehouse V5 - 3D Immersive Experience
-// Treehouse-centered layout with floating activities
+// Treehouse-centered layout with floating activities + interactive interior
 
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SplashScreen } from './components/SplashScreen';
-import { BuddyJinglePlayer } from './components/BuddyJinglePlayer';
 import { ParentDashboard } from './components/ParentDashboard';
 import { BuddyVoiceRecorder } from './components/BuddyVoiceRecorder';
 import ActivityModal from './components/ActivityModal';
+import TreehouseInterior from './components/TreehouseInterior';
 import {
   Confetti,
   LevelUpAnimation,
@@ -20,6 +20,9 @@ import { ACTIVITIES } from './config/activities.config';
 
 // Lazy-load the 3D scene (heavy)
 const TreehouseScene = lazy(() => import('./components/TreehouseScene'));
+
+// Treehouse unlocks at this many stars
+const TREEHOUSE_UNLOCK_STARS = 10;
 
 // Activity positions around the treehouse in an orbital ring
 const ACTIVITY_POSITIONS = [
@@ -38,11 +41,13 @@ const ACTIVITY_POSITIONS = [
 export default function App() {
   // UI State
   const [showSplash, setShowSplash] = useState(true);
+  const [currentView, setCurrentView] = useState<'exterior' | 'interior'>('exterior');
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [showParentDashboard, setShowParentDashboard] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [treehouseLockMessage, setTreehouseLockMessage] = useState(false);
 
   // 3D/Animation State
   const [buddyMood, setBuddyMood] = useState<'idle' | 'talking' | 'laughing' | 'waving'>('idle');
@@ -59,6 +64,9 @@ export default function App() {
 
   // Store
   const { totalStars, completeActivity } = useBuddyStore();
+
+  // Derived
+  const treehouseUnlocked = totalStars >= TREEHOUSE_UNLOCK_STARS;
 
   // Initialize audio system
   useEffect(() => {
@@ -97,6 +105,17 @@ export default function App() {
     audioManager.stop('buddy_background_music', 0.5);
   };
 
+  const toggleBackgroundMusic = () => {
+    playClick();
+    if (backgroundMusicEnabled) {
+      stopBackgroundMusic();
+      setBackgroundMusicEnabled(false);
+    } else {
+      startBackgroundMusic();
+      setBackgroundMusicEnabled(true);
+    }
+  };
+
   const handleActivityClick = (activity: any) => {
     playClick();
     setSelectedActivity(activity);
@@ -132,9 +151,23 @@ export default function App() {
     }, 4000);
   };
 
+  // Click 3D Buddy → open voice recorder to talk
   const handleBuddyClick = () => {
+    playClick();
     setBuddyMood('waving');
+    setShowVoiceRecorder(true);
     setTimeout(() => setBuddyMood('idle'), 2000);
+  };
+
+  // Click treehouse → enter interior (if unlocked)
+  const handleTreehouseClick = () => {
+    playClick();
+    if (treehouseUnlocked) {
+      setCurrentView('interior');
+    } else {
+      setTreehouseLockMessage(true);
+      setTimeout(() => setTreehouseLockMessage(false), 3000);
+    }
   };
 
   return (
@@ -151,210 +184,236 @@ export default function App() {
 
       {!showSplash && (
         <>
-          {/* ====== 3D SCENE (BACKGROUND LAYER) ====== */}
-          <Suspense fallback={<SceneLoadingFallback />}>
-            <TreehouseScene
-              buddyMood={buddyMood}
-              isBuddyTalking={isBuddyTalking}
-              onBuddyClick={handleBuddyClick}
-            />
-          </Suspense>
+          {/* ====== INTERIOR VIEW ====== */}
+          {currentView === 'interior' && (
+            <TreehouseInterior onBack={() => setCurrentView('exterior')} />
+          )}
 
-          {/* ====== UI OVERLAY ====== */}
-          <div className="absolute inset-0 z-10 pointer-events-none">
-
-            {/* ------ TOP BAR ------ */}
-            <header className="pointer-events-auto flex justify-between items-start p-4">
-              {/* Stars Counter */}
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-black/30 backdrop-blur-xl rounded-2xl px-6 py-3 shadow-2xl border border-white/10"
-              >
-                <div className="text-3xl font-bold text-yellow-400 flex items-center gap-2">
-                  <span className="text-2xl">&#11088;</span> {totalStars} Stars
-                </div>
-              </motion.div>
-
-              {/* Title */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center"
-              >
-                <h1 className="text-4xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                  Buddy's Treehouse
-                </h1>
-                <p className="text-lg text-white/70 drop-shadow-lg">Learn, Play, Grow!</p>
-              </motion.div>
-
-              {/* Action Buttons */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex gap-2"
-              >
-                <button
-                  onClick={() => { playClick(); setShowVoiceRecorder(true); }}
-                  className="px-4 py-2 bg-gradient-to-r from-red-500/80 to-pink-500/80 hover:from-red-500 hover:to-pink-500 text-white text-lg font-bold rounded-xl shadow-lg backdrop-blur-sm transition-all transform hover:scale-105 border border-white/10"
-                >
-                  Talk with Buddy
-                </button>
-                <button
-                  onClick={() => { playClick(); setShowParentDashboard(true); }}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-500/80 to-blue-500/80 hover:from-purple-500 hover:to-blue-500 text-white text-lg font-bold rounded-xl shadow-lg backdrop-blur-sm transition-all transform hover:scale-105 border border-white/10"
-                >
-                  Parent Dashboard
-                </button>
-                <button
-                  onClick={() => {
-                    playClick();
-                    if (backgroundMusicEnabled) {
-                      stopBackgroundMusic();
-                      setBackgroundMusicEnabled(false);
-                    } else {
-                      startBackgroundMusic();
-                      setBackgroundMusicEnabled(true);
-                    }
-                  }}
-                  className={`px-3 py-2 rounded-xl shadow-lg backdrop-blur-sm transition-all transform hover:scale-105 text-lg font-bold border border-white/10 ${
-                    backgroundMusicEnabled
-                      ? 'bg-green-500/80 hover:bg-green-500 text-white'
-                      : 'bg-gray-500/80 hover:bg-gray-500 text-white'
-                  }`}
-                >
-                  {backgroundMusicEnabled ? '\u266B' : '\uD83D\uDD07'}
-                </button>
-                <button
-                  onClick={() => { playClick(); setShowSettings(true); }}
-                  className="px-3 py-2 bg-white/20 hover:bg-white/30 text-white text-lg rounded-xl shadow-lg backdrop-blur-sm transition-all transform hover:scale-105 border border-white/10"
-                >
-                  &#9881;
-                </button>
-              </motion.div>
-            </header>
-
-            {/* ------ FLOATING ACTIVITY BUBBLES (round icons) ------ */}
-            {ACTIVITIES.map((module, index) => {
-              const pos = ACTIVITY_POSITIONS[index % ACTIVITY_POSITIONS.length];
-              const isLocked = totalStars < module.starsRequired;
-
-              return (
-                <motion.div
-                  key={module.id}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{
-                    opacity: 1,
-                    scale: 1,
-                    y: [0, -8, 0],
-                  }}
-                  transition={{
-                    opacity: { delay: 0.3 + index * 0.1, duration: 0.5 },
-                    scale: { delay: 0.3 + index * 0.1, duration: 0.5, type: 'spring' },
-                    y: { delay: 1 + index * 0.15, duration: 3 + (index % 3), repeat: Infinity, ease: 'easeInOut' },
-                  }}
-                  className="absolute pointer-events-auto"
-                  style={{
-                    left: `${pos.x}%`,
-                    top: `${pos.y}%`,
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                >
-                  <button
-                    onClick={() => !isLocked && handleActivityClick(module)}
-                    disabled={isLocked}
-                    className={`group relative flex flex-col items-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    {/* Round icon circle */}
-                    <div
-                      className={`
-                        relative w-[72px] h-[72px] rounded-full flex items-center justify-center transition-all duration-300 shadow-lg
-                        ${isLocked
-                          ? 'bg-black/50 backdrop-blur-md border-2 border-white/10'
-                          : 'bg-white/20 backdrop-blur-xl border-2 border-white/30 hover:bg-white/35 hover:border-white/50 hover:scale-115 hover:shadow-2xl'
-                        }
-                      `}
-                    >
-                      {/* Lock overlay */}
-                      {isLocked && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10 rounded-full bg-black/30">
-                          <span className="text-lg">&#128274;</span>
-                        </div>
-                      )}
-
-                      {/* Module icon */}
-                      <span className={`text-3xl ${isLocked ? 'opacity-30 blur-[1px]' : ''}`}>
-                        {module.icon}
-                      </span>
-
-                      {/* Glow effect on hover (unlocked only) */}
-                      {!isLocked && (
-                        <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
-                      )}
-                    </div>
-
-                    {/* Label below the circle */}
-                    <span className={`mt-1.5 text-[11px] font-bold text-center whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${isLocked ? 'text-white/30' : 'text-white'}`}>
-                      {module.name}
-                    </span>
-                  </button>
-                </motion.div>
-              );
-            })}
-
-            {/* ------ BUDDY JINGLE PLAYER (bottom center) ------ */}
-            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.5 }}
-              >
-                <BuddyJinglePlayer
-                  jingleUrl="/audio/buddy-jingle-full.mp3"
-                  onPlay={() => {
-                    setBuddyMood('talking');
-                    if (backgroundMusicEnabled) {
-                      audioManager.setVolume('buddy_background_music', 0.1);
-                    }
-                  }}
-                  onEnd={() => {
-                    setBuddyMood('idle');
-                    if (backgroundMusicEnabled) {
-                      audioManager.setVolume('buddy_background_music', 0.3);
-                    }
-                  }}
+          {/* ====== EXTERIOR VIEW ====== */}
+          {currentView === 'exterior' && (
+            <>
+              {/* 3D SCENE (BACKGROUND LAYER) */}
+              <Suspense fallback={<SceneLoadingFallback />}>
+                <TreehouseScene
+                  buddyMood={buddyMood}
+                  isBuddyTalking={isBuddyTalking}
+                  onBuddyClick={handleBuddyClick}
+                  onTreehouseClick={handleTreehouseClick}
+                  treehouseUnlocked={treehouseUnlocked}
                 />
-              </motion.div>
-            </div>
-          </div>
+              </Suspense>
 
-          {/* ====== VOICE RECORDER SIDE PANEL (Buddy stays visible) ====== */}
+              {/* UI OVERLAY */}
+              <div className="absolute inset-0 z-10 pointer-events-none">
+                {/* ------ TOP BAR ------ */}
+                <header className="pointer-events-auto flex justify-between items-start p-3 md:p-4 gap-2">
+                  {/* Stars Counter */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-black/30 backdrop-blur-xl rounded-2xl px-4 py-2 md:px-6 md:py-3 shadow-2xl border border-white/10"
+                  >
+                    <div className="text-xl md:text-3xl font-bold text-yellow-400 flex items-center gap-2">
+                      <span className="text-lg md:text-2xl">&#11088;</span> {totalStars}
+                    </div>
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center hidden md:block"
+                  >
+                    <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                      Buddy's Treehouse
+                    </h1>
+                    <p className="text-sm md:text-lg text-white/70 drop-shadow-lg">Learn, Play, Grow!</p>
+                  </motion.div>
+
+                  {/* Action Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex gap-2 flex-wrap justify-end"
+                  >
+                    {/* Music Toggle - clear label */}
+                    <button
+                      onClick={toggleBackgroundMusic}
+                      className={`flex items-center gap-1.5 px-3 py-2 md:px-4 rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95 text-sm md:text-base font-bold border border-white/10 ${
+                        backgroundMusicEnabled
+                          ? 'bg-green-500/80 text-white'
+                          : 'bg-gray-600/80 text-white/80'
+                      }`}
+                    >
+                      <span>{backgroundMusicEnabled ? '\u266B' : '\uD83D\uDD07'}</span>
+                      <span className="hidden sm:inline">Music {backgroundMusicEnabled ? 'On' : 'Off'}</span>
+                    </button>
+
+                    {/* Parent Dashboard */}
+                    <button
+                      onClick={() => { playClick(); setShowParentDashboard(true); }}
+                      className="px-3 py-2 md:px-4 bg-gradient-to-r from-purple-500/80 to-blue-500/80 text-white text-sm md:text-base font-bold rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95 border border-white/10"
+                    >
+                      <span className="hidden sm:inline">Parent </span>Dashboard
+                    </button>
+
+                    {/* Settings */}
+                    <button
+                      onClick={() => { playClick(); setShowSettings(true); }}
+                      className="px-3 py-2 bg-white/20 text-white text-lg rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95 border border-white/10"
+                    >
+                      &#9881;
+                    </button>
+                  </motion.div>
+                </header>
+
+                {/* ------ TREEHOUSE LOCK MESSAGE ------ */}
+                <AnimatePresence>
+                  {treehouseLockMessage && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-[40%] left-1/2 -translate-x-1/2 pointer-events-auto z-20"
+                    >
+                      <div className="bg-black/60 backdrop-blur-xl rounded-2xl px-6 py-4 text-center border border-white/20 shadow-2xl">
+                        <div className="text-3xl mb-2">&#128274;</div>
+                        <p className="text-white font-bold text-lg">Treehouse Locked!</p>
+                        <p className="text-white/70 text-sm mt-1">
+                          Earn {TREEHOUSE_UNLOCK_STARS - totalStars} more &#11088; to unlock
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* ------ "TAP BUDDY TO TALK" HINT ------ */}
+                {!showVoiceRecorder && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2 }}
+                    className="absolute bottom-6 left-[15%] pointer-events-none"
+                  >
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/10"
+                    >
+                      <p className="text-white/80 text-sm font-medium">&#128072; Tap Buddy to talk!</p>
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                {/* ------ TREEHOUSE ENTRY HINT ------ */}
+                {treehouseUnlocked && !treehouseLockMessage && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 2.5 }}
+                    className="absolute bottom-6 right-[15%] pointer-events-none"
+                  >
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 2.5, repeat: Infinity }}
+                      className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/10"
+                    >
+                      <p className="text-white/80 text-sm font-medium">&#127969; Tap treehouse to enter!</p>
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                {/* ------ FLOATING ACTIVITY BUBBLES (round icons) ------ */}
+                {ACTIVITIES.map((module, index) => {
+                  const pos = ACTIVITY_POSITIONS[index % ACTIVITY_POSITIONS.length];
+                  const isLocked = totalStars < module.starsRequired;
+
+                  return (
+                    <motion.div
+                      key={module.id}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{
+                        opacity: 1,
+                        scale: 1,
+                        y: [0, -8, 0],
+                      }}
+                      transition={{
+                        opacity: { delay: 0.3 + index * 0.1, duration: 0.5 },
+                        scale: { delay: 0.3 + index * 0.1, duration: 0.5, type: 'spring' },
+                        y: { delay: 1 + index * 0.15, duration: 3 + (index % 3), repeat: Infinity, ease: 'easeInOut' },
+                      }}
+                      className="absolute pointer-events-auto"
+                      style={{
+                        left: `${pos.x}%`,
+                        top: `${pos.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                      }}
+                    >
+                      <button
+                        onClick={() => !isLocked && handleActivityClick(module)}
+                        disabled={isLocked}
+                        className={`group relative flex flex-col items-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {/* Round icon circle */}
+                        <div
+                          className={`
+                            relative w-[60px] h-[60px] md:w-[72px] md:h-[72px] rounded-full flex items-center justify-center transition-all duration-300 shadow-lg
+                            ${isLocked
+                              ? 'bg-black/50 backdrop-blur-md border-2 border-white/10'
+                              : 'bg-white/20 backdrop-blur-xl border-2 border-white/30 active:scale-90 active:bg-white/40'
+                            }
+                          `}
+                        >
+                          {isLocked && (
+                            <div className="absolute inset-0 flex items-center justify-center z-10 rounded-full bg-black/30">
+                              <span className="text-lg">&#128274;</span>
+                            </div>
+                          )}
+                          <span className={`text-2xl md:text-3xl ${isLocked ? 'opacity-30 blur-[1px]' : ''}`}>
+                            {module.icon}
+                          </span>
+                          {!isLocked && (
+                            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+                          )}
+                        </div>
+                        <span className={`mt-1 text-[10px] md:text-[11px] font-bold text-center whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${isLocked ? 'text-white/30' : 'text-white'}`}>
+                          {module.name}
+                        </span>
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ====== VOICE RECORDER SIDE PANEL (click Buddy to open) ====== */}
           <AnimatePresence>
-            {showVoiceRecorder && (
+            {showVoiceRecorder && currentView === 'exterior' && (
               <motion.div
                 initial={{ x: 400, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 400, opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed right-4 top-20 bottom-20 w-80 z-30 flex flex-col"
+                className="fixed right-2 top-16 bottom-8 w-72 md:right-4 md:top-20 md:bottom-20 md:w-80 z-30 flex flex-col"
               >
                 <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl flex flex-col h-full overflow-hidden">
                   {/* Header */}
-                  <div className="flex justify-between items-center p-4 border-b border-white/10">
-                    <h2 className="text-xl font-bold text-white">Talk with Buddy</h2>
+                  <div className="flex justify-between items-center p-3 md:p-4 border-b border-white/10">
+                    <h2 className="text-lg md:text-xl font-bold text-white">Talk with Buddy</h2>
                     <button
                       onClick={() => {
                         setShowVoiceRecorder(false);
                         setIsBuddyTalking(false);
                         setBuddyMood('idle');
                       }}
-                      className="text-white/60 hover:text-white text-2xl hover:scale-110 transition-all"
+                      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white text-xl active:scale-90 transition-all"
                     >
                       &#10005;
                     </button>
                   </div>
                   {/* Voice Recorder */}
-                  <div className="flex-1 overflow-y-auto p-4">
+                  <div className="flex-1 overflow-y-auto p-3 md:p-4">
                     <BuddyVoiceRecorder
                       compact
                       onRecordingStart={() => {
@@ -489,25 +548,25 @@ function SettingsModal({
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-3xl p-8 max-w-2xl w-full"
+        className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-4xl font-bold">&#9881; Settings</h2>
-          <button onClick={onClose} className="text-4xl hover:scale-110 transition-transform">
+          <h2 className="text-3xl md:text-4xl font-bold">&#9881; Settings</h2>
+          <button onClick={onClose} className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-3xl active:scale-90 transition-transform">
             &#10005;
           </button>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-5 md:p-6">
+            <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Buddy's Theme Song</h3>
-                <p className="text-gray-600">Background music on main menu</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-1">Background Music</h3>
+                <p className="text-gray-600 text-sm">Music only - sound effects stay on</p>
               </div>
               <button
                 onClick={() => onMusicToggle(!musicEnabled)}
-                className={`px-6 py-3 rounded-xl text-xl font-bold transition-all ${
+                className={`px-6 py-3 rounded-xl text-lg md:text-xl font-bold transition-all active:scale-95 ${
                   musicEnabled ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
                 }`}
               >
@@ -517,7 +576,7 @@ function SettingsModal({
           </div>
 
           <div>
-            <label className="text-2xl font-bold mb-2 block">Master Volume</label>
+            <label className="text-xl md:text-2xl font-bold mb-2 block">Master Volume</label>
             <input
               type="range"
               min="0"
@@ -529,13 +588,14 @@ function SettingsModal({
                 setMasterVolume(vol);
                 audioManager.setMasterVolume(vol);
               }}
-              className="w-full h-4 rounded-full"
+              className="w-full h-6 rounded-full appearance-none bg-gray-200 cursor-pointer"
+              style={{ WebkitAppearance: 'none' }}
             />
             <div className="text-center text-gray-600 mt-2">{Math.round(masterVolume * 100)}%</div>
           </div>
 
           <div>
-            <label className="text-2xl font-bold mb-2 block">Music Volume</label>
+            <label className="text-xl md:text-2xl font-bold mb-2 block">Music Volume</label>
             <input
               type="range"
               min="0"
@@ -547,13 +607,14 @@ function SettingsModal({
                 setMusicVolume(vol);
                 audioManager.setVolume('buddy_background_music', vol);
               }}
-              className="w-full h-4 rounded-full"
+              className="w-full h-6 rounded-full appearance-none bg-gray-200 cursor-pointer"
+              style={{ WebkitAppearance: 'none' }}
             />
             <div className="text-center text-gray-600 mt-2">{Math.round(musicVolume * 100)}%</div>
           </div>
 
           <div>
-            <label className="text-2xl font-bold mb-2 block">Sound Effects</label>
+            <label className="text-xl md:text-2xl font-bold mb-2 block">Sound Effects</label>
             <input
               type="range"
               min="0"
@@ -565,7 +626,8 @@ function SettingsModal({
                 setSfxVolume(vol);
                 audioManager.setSFXVolume(vol);
               }}
-              className="w-full h-4 rounded-full"
+              className="w-full h-6 rounded-full appearance-none bg-gray-200 cursor-pointer"
+              style={{ WebkitAppearance: 'none' }}
             />
             <div className="text-center text-gray-600 mt-2">{Math.round(sfxVolume * 100)}%</div>
           </div>
