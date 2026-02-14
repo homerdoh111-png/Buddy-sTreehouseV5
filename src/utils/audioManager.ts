@@ -60,7 +60,16 @@ class AudioManager {
   };
 
   constructor() {
-    this.init();
+    // Defer AudioContext creation until first user interaction (required by browsers)
+    const initOnInteraction = () => {
+      this.init();
+      document.removeEventListener('click', initOnInteraction);
+      document.removeEventListener('touchend', initOnInteraction);
+      document.removeEventListener('pointerdown', initOnInteraction);
+    };
+    document.addEventListener('click', initOnInteraction);
+    document.addEventListener('touchend', initOnInteraction);
+    document.addEventListener('pointerdown', initOnInteraction);
   }
 
   private async init() {
@@ -69,14 +78,8 @@ class AudioManager {
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.isInitialized = true;
-
-      // Resume audio context on user interaction (mobile requirement)
-      document.addEventListener('click', () => this.resume(), { once: true });
-      document.addEventListener('touchend', () => this.resume(), { once: true });
-
-      console.log('AudioManager initialized');
-    } catch (error) {
-      console.error('Failed to initialize AudioManager:', error);
+    } catch (_) {
+      // AudioContext not supported — audio will be silently disabled
     }
   }
 
@@ -86,16 +89,11 @@ class AudioManager {
     }
   }
 
-  // Preload audio files
+  // Preload audio files (silently skips if AudioContext not ready yet)
   async preload(audioIds: string[]): Promise<void> {
-    if (!this.audioContext) {
-      console.warn('AudioContext not initialized');
-      return;
-    }
-
+    if (!this.audioContext) return;
     const promises = audioIds.map(id => this.loadAudio(id));
     await Promise.all(promises);
-    console.log(`Preloaded ${audioIds.length} audio files`);
   }
 
   // Load single audio file by ID or URL
@@ -113,17 +111,26 @@ class AudioManager {
 
     try {
       const response = await fetch(audioUrl);
+      if (!response.ok) return; // File not found — skip silently
       const arrayBuffer = await response.arrayBuffer();
+      // Skip tiny placeholder files (< 1KB can't be valid audio)
+      if (arrayBuffer.byteLength < 1024) return;
       const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
       this.audioBuffers.set(audioId, audioBuffer);
-    } catch (error) {
-      console.error(`Failed to load audio ${audioId}:`, error);
+    } catch (_) {
+      // Audio file missing or invalid — silently skip
     }
   }
 
   // Play audio - supports both registry IDs and direct URLs via options.url
   async play(audioId: string, options?: PlayOptions): Promise<void> {
-    if (!this.audioContext || this.isMuted) return;
+    if (this.isMuted) return;
+    // Ensure AudioContext is initialized (may not be if no user interaction yet)
+    if (!this.audioContext) {
+      await this.init();
+      await this.resume();
+    }
+    if (!this.audioContext) return;
 
     // If a URL is provided, register it dynamically
     if (options?.url && !this.audioRegistry[audioId]) {
