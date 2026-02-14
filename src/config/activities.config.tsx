@@ -1,11 +1,31 @@
 // Activities Configuration
 // This file defines all available learning modules and their activities
 
-import { 
-  SameAndDifferent, 
-  OppositesMatching, 
-  PatternDetective, 
-  PointOfView 
+import {
+  LetterRecognition,
+  LetterSounds,
+  LetterMatching,
+  AlphabetOrder,
+  CountingGame,
+  NumberRecognition,
+  SimpleMath,
+  NumberPatterns,
+  ColorRecognition,
+  ColorMixing,
+  RainbowOrder,
+  ShapeRecognition,
+  ShapeSorting,
+  ShapeBuilding,
+  RhythmPatterns,
+  InstrumentSounds,
+  MusicMemory,
+} from '../components/activities/BaseModules';
+
+import {
+  SameAndDifferent,
+  OppositesMatching,
+  PatternDetective,
+  PointOfView
 } from '../components/activities/LogicThinkingModule';
 
 import {
@@ -44,22 +64,8 @@ export interface Module {
   levels: Activity[];
 }
 
-// Placeholder components for base modules (these would normally exist)
-const PlaceholderActivity = ({ level, onComplete }: { level: any; onComplete: (stars: number) => void }) => (
-  <div className="text-center py-12">
-    <div className="text-6xl mb-6">🚧</div>
-    <p className="text-2xl text-gray-600 mb-6">Activity Coming Soon!</p>
-    <button
-      onClick={() => onComplete(level?.starsReward || 3)}
-      className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xl font-bold rounded-2xl hover:scale-105 transition-all shadow-lg"
-    >
-      Complete & Earn Stars
-    </button>
-  </div>
-);
-
 export const ACTIVITIES: Module[] = [
-  // Base Modules (Placeholders for now)
+  // Base Modules - fully interactive
   {
     id: 'letters',
     name: 'Letters',
@@ -67,13 +73,13 @@ export const ACTIVITIES: Module[] = [
     starsRequired: 0,
     gradient: 'from-red-400 to-pink-500',
     levels: [
-      { levelNumber: 1, activity: 'letter-recognition', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 2, activity: 'letter-sounds', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 3, activity: 'letter-matching', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 4, activity: 'alphabet-song', component: PlaceholderActivity, starsReward: 3 },
+      { levelNumber: 1, activity: 'letter-recognition', component: LetterRecognition, starsReward: 3 },
+      { levelNumber: 2, activity: 'letter-sounds', component: LetterSounds, starsReward: 3 },
+      { levelNumber: 3, activity: 'letter-matching', component: LetterMatching, starsReward: 3 },
+      { levelNumber: 4, activity: 'alphabet-order', component: AlphabetOrder, starsReward: 3 },
     ],
   },
-  
+
   {
     id: 'numbers',
     name: 'Numbers',
@@ -81,13 +87,13 @@ export const ACTIVITIES: Module[] = [
     starsRequired: 5,
     gradient: 'from-blue-400 to-indigo-500',
     levels: [
-      { levelNumber: 1, activity: 'counting', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 2, activity: 'number-recognition', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 3, activity: 'simple-math', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 4, activity: 'number-patterns', component: PlaceholderActivity, starsReward: 3 },
+      { levelNumber: 1, activity: 'counting', component: CountingGame, starsReward: 3 },
+      { levelNumber: 2, activity: 'number-recognition', component: NumberRecognition, starsReward: 3 },
+      { levelNumber: 3, activity: 'simple-math', component: SimpleMath, starsReward: 3 },
+      { levelNumber: 4, activity: 'number-patterns', component: NumberPatterns, starsReward: 3 },
     ],
   },
-  
+
   {
     id: 'colors',
     name: 'Colors',
@@ -95,12 +101,12 @@ export const ACTIVITIES: Module[] = [
     starsRequired: 10,
     gradient: 'from-yellow-400 to-orange-500',
     levels: [
-      { levelNumber: 1, activity: 'color-recognition', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 2, activity: 'color-mixing', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 3, activity: 'rainbow-order', component: PlaceholderActivity, starsReward: 3 },
+      { levelNumber: 1, activity: 'color-recognition', component: ColorRecognition, starsReward: 3 },
+      { levelNumber: 2, activity: 'color-mixing', component: ColorMixing, starsReward: 3 },
+      { levelNumber: 3, activity: 'rainbow-order', component: RainbowOrder, starsReward: 3 },
     ],
   },
-  
+
   {
     id: 'shapes',
     name: 'Shapes',
@@ -108,12 +114,12 @@ export const ACTIVITIES: Module[] = [
     starsRequired: 15,
     gradient: 'from-green-400 to-teal-500',
     levels: [
-      { levelNumber: 1, activity: 'shape-recognition', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 2, activity: 'shape-sorting', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 3, activity: 'shape-building', component: PlaceholderActivity, starsReward: 3 },
+      { levelNumber: 1, activity: 'shape-recognition', component: ShapeRecognition, starsReward: 3 },
+      { levelNumber: 2, activity: 'shape-sorting', component: ShapeSorting, starsReward: 3 },
+      { levelNumber: 3, activity: 'shapes-in-real-life', component: ShapeBuilding, starsReward: 3 },
     ],
   },
-  
+
   {
     id: 'music',
     name: 'Music',
@@ -121,9 +127,9 @@ export const ACTIVITIES: Module[] = [
     starsRequired: 20,
     gradient: 'from-purple-400 to-pink-500',
     levels: [
-      { levelNumber: 1, activity: 'rhythm-patterns', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 2, activity: 'instrument-sounds', component: PlaceholderActivity, starsReward: 3 },
-      { levelNumber: 3, activity: 'music-memory', component: PlaceholderActivity, starsReward: 3 },
+      { levelNumber: 1, activity: 'rhythm-patterns', component: RhythmPatterns, starsReward: 3 },
+      { levelNumber: 2, activity: 'instrument-sounds', component: InstrumentSounds, starsReward: 3 },
+      { levelNumber: 3, activity: 'music-memory', component: MusicMemory, starsReward: 3 },
     ],
   },
 

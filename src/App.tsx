@@ -305,23 +305,29 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {/* ------ TREEHOUSE ENTRY HINT ------ */}
-                {treehouseUnlocked && !treehouseLockMessage && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 2.5 }}
-                    className="absolute bottom-6 right-[15%] pointer-events-none"
+                {/* ------ TREEHOUSE ENTER BUTTON (2D overlay - reliable on touch) ------ */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.5 }}
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto z-20"
+                >
+                  <motion.button
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    onClick={handleTreehouseClick}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl shadow-xl backdrop-blur-md border transition-all active:scale-95 ${
+                      treehouseUnlocked
+                        ? 'bg-amber-500/80 border-amber-300/40 text-white'
+                        : 'bg-black/40 border-white/10 text-white/70'
+                    }`}
                   >
-                    <motion.div
-                      animate={{ y: [0, -5, 0] }}
-                      transition={{ duration: 2.5, repeat: Infinity }}
-                      className="bg-black/40 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/10"
-                    >
-                      <p className="text-white/80 text-sm font-medium">&#127969; Tap treehouse to enter!</p>
-                    </motion.div>
-                  </motion.div>
-                )}
+                    <span className="text-2xl">{treehouseUnlocked ? '\uD83C\uDFE0' : '\uD83D\uDD12'}</span>
+                    <span className="font-bold text-base">
+                      {treehouseUnlocked ? 'Enter Treehouse' : `Treehouse (${TREEHOUSE_UNLOCK_STARS - totalStars} \u2B50 to unlock)`}
+                    </span>
+                  </motion.button>
+                </motion.div>
 
                 {/* ------ FLOATING ACTIVITY BUBBLES (round icons) ------ */}
                 {ACTIVITIES.map((module, index) => {
@@ -543,19 +549,24 @@ function SettingsModal({
   const [sfxVolume, setSfxVolume] = useState(0.8);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl md:text-4xl font-bold">&#9881; Settings</h2>
-          <button onClick={onClose} className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-3xl active:scale-90 transition-transform">
-            &#10005;
-          </button>
-        </div>
+    <>
+      {/* Backdrop - click to close */}
+      <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
+
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold">&#9881; Settings</h2>
+            <button onClick={onClose} className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-3xl active:scale-90 transition-transform">
+              &#10005;
+            </button>
+          </div>
 
         <div className="space-y-6">
           <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-5 md:p-6">
@@ -632,7 +643,8 @@ function SettingsModal({
             <div className="text-center text-gray-600 mt-2">{Math.round(sfxVolume * 100)}%</div>
           </div>
         </div>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </>
   );
 }
