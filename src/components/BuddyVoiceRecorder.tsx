@@ -247,38 +247,72 @@ export function BuddyVoiceRecorder({
       const audioContext = audioContextRef.current;
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
+      // iOS Safari can start AudioContext suspended until a user gesture
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+
       // Create source
       const source = audioContext.createBufferSource();
       source.buffer = audioBuffer;
 
-      // PITCH SHIFT (Talking Tom effect!)
-      // Increase playback rate to 1.7x for chipmunk voice
-      source.playbackRate.value = 1.7;
+      // "Cute teddy bear" (subtle): slightly lower pitch + warm EQ + gentle saturation.
+      // NOTE: WebAudio doesn't have true formant shifting; we approximate with EQ.
+      source.playbackRate.value = 0.93;
 
-      // Add some reverb for fun
-      const convolver = audioContext.createConvolver();
-      const impulseLength = audioContext.sampleRate * 0.5;
-      const impulse = audioContext.createBuffer(2, impulseLength, audioContext.sampleRate);
-      for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
-        const channelData = impulse.getChannelData(channel);
-        for (let i = 0; i < impulseLength; i++) {
-          channelData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (impulseLength * 0.3));
+      const preGain = audioContext.createGain();
+      preGain.gain.value = 1.0;
+
+      const lowShelf = audioContext.createBiquadFilter();
+      lowShelf.type = 'lowshelf';
+      lowShelf.frequency.value = 180;
+      lowShelf.gain.value = 3.0;
+
+      const presenceDip = audioContext.createBiquadFilter();
+      presenceDip.type = 'peaking';
+      presenceDip.frequency.value = 2800;
+      presenceDip.Q.value = 0.9;
+      presenceDip.gain.value = -2.5;
+
+      const lowpass = audioContext.createBiquadFilter();
+      lowpass.type = 'lowpass';
+      lowpass.frequency.value = 9000;
+      lowpass.Q.value = 0.2;
+
+      const waveshaper = audioContext.createWaveShaper();
+      const makeCurve = (amount: number) => {
+        const k = amount;
+        const n = 44100;
+        const curve = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+          const x = (i * 2) / n - 1;
+          curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
         }
-      }
-      convolver.buffer = impulse;
+        return curve;
+      };
+      waveshaper.curve = makeCurve(0.8);
+      waveshaper.oversample = '4x';
+
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -22;
+      compressor.knee.value = 18;
+      compressor.ratio.value = 3;
+      compressor.attack.value = 0.01;
+      compressor.release.value = 0.12;
+
+      const outGain = audioContext.createGain();
+      outGain.gain.value = 0.95;
 
       // Connect audio graph
-      const dryGain = audioContext.createGain();
-      const wetGain = audioContext.createGain();
-      dryGain.gain.value = 0.8;
-      wetGain.gain.value = 0.2;
-
-      source.connect(dryGain);
-      source.connect(convolver);
-      convolver.connect(wetGain);
-      
-      dryGain.connect(audioContext.destination);
-      wetGain.connect(audioContext.destination);
+      source
+        .connect(preGain)
+        .connect(lowShelf)
+        .connect(presenceDip)
+        .connect(lowpass)
+        .connect(waveshaper)
+        .connect(compressor)
+        .connect(outGain)
+        .connect(audioContext.destination);
 
       // Play
       source.start(0);
