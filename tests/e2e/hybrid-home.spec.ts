@@ -20,5 +20,5 @@ test('hybrid home shows bottom dock and can open explore bubbles', async ({ page
   const count = await buttons.count();
   expect(count).toBeGreaterThan(5);
 
-  await page.screenshot({ path: 'test-results/hybrid-home.png', fullPage: true });
+  // (screenshot disabled: fullPage screenshots can be slow on 3D scenes)
 });

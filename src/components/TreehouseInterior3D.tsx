@@ -33,9 +33,27 @@ type StationId = 'basketball' | 'feeding' | 'bedtime';
 function BuddyModel3D({ onClick }: { onClick?: () => void }) {
   const { scene } = useGLTF('/models/buddy.glb');
   const clonedScene = useMemo(() => scene.clone(true), [scene]);
+  const groupRef = useRef<THREE.Group>(null);
+
+  // The Buddy GLB has no baked animation clips, so we add a light “alive” idle:
+  // breathing + gentle sway + tiny bob (Tom-style responsiveness without being distracting).
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    const g = groupRef.current;
+    if (!g) return;
+
+    const bob = Math.sin(t * 1.3) * 0.05;
+    const sway = Math.sin(t * 0.7) * 0.12;
+    const breathe = 1 + Math.sin(t * 1.1) * 0.01;
+
+    g.position.y = -1.2 + bob;
+    g.rotation.y = sway;
+    g.scale.setScalar(5.8 * breathe);
+  });
 
   return (
     <group
+      ref={groupRef}
       position={[0, -1.2, 0]}
       scale={5.8}
       onClick={(e) => {
