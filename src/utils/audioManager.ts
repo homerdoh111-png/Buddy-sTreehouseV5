@@ -122,6 +122,86 @@ class AudioManager {
     }
   }
 
+
+
+  // --- Synth SFX fallback (no asset files required) ---
+  async synthSfx(kind: 'click' | 'success' | 'error' | 'star' | 'unlock' | 'achievement' | 'levelup') {
+    if (this.isMuted) return;
+    if (!this.audioContext) {
+      await this.init();
+      await this.resume();
+    }
+    if (!this.audioContext) return;
+
+    const ctx = this.audioContext;
+    const now = ctx.currentTime;
+
+    const master = ctx.createGain();
+    master.gain.value = this.masterVolume * this.sfxVolume;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 8000;
+
+    // Envelope helper
+    const env = (attack: number, decay: number, peak: number) => {
+      gain.gain.cancelScheduledValues(now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + attack + decay);
+    };
+
+    switch (kind) {
+      case 'click':
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(650, now + 0.03);
+        filter.frequency.setValueAtTime(6500, now);
+        env(0.005, 0.05, 0.16);
+        break;
+      case 'success':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.setValueAtTime(1320, now + 0.08);
+        filter.frequency.setValueAtTime(12000, now);
+        env(0.01, 0.18, 0.14);
+        break;
+      case 'error':
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.exponentialRampToValueAtTime(160, now + 0.12);
+        filter.frequency.setValueAtTime(1800, now);
+        env(0.005, 0.14, 0.12);
+        break;
+      case 'star':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1760, now);
+        osc.frequency.setValueAtTime(2200, now + 0.06);
+        filter.frequency.setValueAtTime(14000, now);
+        env(0.008, 0.12, 0.12);
+        break;
+      case 'unlock':
+      case 'achievement':
+      case 'levelup':
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.setValueAtTime(990, now + 0.08);
+        filter.frequency.setValueAtTime(9000, now);
+        env(0.01, 0.22, 0.12);
+        break;
+    }
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    master.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
   // Play audio - supports both registry IDs and direct URLs via options.url
   async play(audioId: string, options?: PlayOptions): Promise<void> {
     if (this.isMuted) return;
@@ -317,13 +397,35 @@ const audioManager = new AudioManager();
 export default audioManager;
 
 // Convenient helper functions
-export const playSuccess = () => audioManager.play('success');
-export const playStar = () => audioManager.play('star_collect');
-export const playClick = () => audioManager.play('button_click');
-export const playAchievement = () => audioManager.play('achievement');
-export const playLevelUp = () => audioManager.play('level_up');
-export const playUnlock = () => audioManager.play('unlock');
-export const playError = () => audioManager.play('error');
+export const playSuccess = async () => {
+  await audioManager.play('success');
+  // Fallback if asset missing/placeholder
+  await audioManager.synthSfx('success');
+};
+export const playStar = async () => {
+  await audioManager.play('star_collect');
+  await audioManager.synthSfx('star');
+};
+export const playClick = async () => {
+  await audioManager.play('button_click');
+  await audioManager.synthSfx('click');
+};
+export const playAchievement = async () => {
+  await audioManager.play('achievement');
+  await audioManager.synthSfx('achievement');
+};
+export const playLevelUp = async () => {
+  await audioManager.play('level_up');
+  await audioManager.synthSfx('levelup');
+};
+export const playUnlock = async () => {
+  await audioManager.play('unlock');
+  await audioManager.synthSfx('unlock');
+};
+export const playError = async () => {
+  await audioManager.play('error');
+  await audioManager.synthSfx('error');
+};
 
 export const playLetter = (letter: string) => {
   audioManager.play(`letter_${letter.toLowerCase()}`);
