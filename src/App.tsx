@@ -22,8 +22,8 @@ import { ACTIVITIES } from './config/activities.config';
 // Lazy-load the 3D scene (heavy)
 const TreehouseScene = lazy(() => import('./components/TreehouseScene'));
 
-// Treehouse unlocks at this many stars
-const TREEHOUSE_UNLOCK_STARS = 10;
+// Treehouse should always be available (Tom-style)
+const TREEHOUSE_UNLOCK_STARS = 0;
 
 // Activity positions around the treehouse in an orbital ring
 const ACTIVITY_POSITIONS = [
@@ -48,8 +48,6 @@ export default function App() {
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [treehouseLockMessage, setTreehouseLockMessage] = useState(false);
-
   // Hybrid home UX
   const [showBubbles, setShowBubbles] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
@@ -71,7 +69,7 @@ export default function App() {
   const { totalStars, completeActivity } = useBuddyStore();
 
   // Derived
-  const treehouseUnlocked = totalStars >= TREEHOUSE_UNLOCK_STARS;
+  const treehouseUnlocked = true;
 
   // Initialize audio system
   useEffect(() => {
@@ -173,12 +171,7 @@ export default function App() {
   // Click treehouse → enter interior (if unlocked)
   const handleTreehouseClick = () => {
     playClick();
-    if (treehouseUnlocked) {
-      setCurrentView('interior');
-    } else {
-      setTreehouseLockMessage(true);
-      setTimeout(() => setTreehouseLockMessage(false), 3000);
-    }
+    setCurrentView('interior');
   };
 
   return (
@@ -197,7 +190,13 @@ export default function App() {
         <>
           {/* ====== INTERIOR VIEW ====== */}
           {currentView === 'interior' && (
-            <TreehouseInterior onBack={() => setCurrentView('exterior')} />
+            <TreehouseInterior
+              onBack={() => setCurrentView('exterior')}
+              onBuddyClick={() => {
+                playClick();
+                setShowVoiceRecorder(true);
+              }}
+            />
           )}
 
           {/* ====== EXTERIOR VIEW ====== */}
@@ -277,26 +276,6 @@ export default function App() {
                     </button>
                   </motion.div>
                 </header>
-
-                {/* ------ TREEHOUSE LOCK MESSAGE ------ */}
-                <AnimatePresence>
-                  {treehouseLockMessage && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute top-[40%] left-1/2 -translate-x-1/2 pointer-events-auto z-20"
-                    >
-                      <div className="bg-black/60 backdrop-blur-xl rounded-2xl px-6 py-4 text-center border border-white/20 shadow-2xl">
-                        <div className="text-3xl mb-2">&#128274;</div>
-                        <p className="text-white font-bold text-lg">Treehouse Locked!</p>
-                        <p className="text-white/70 text-sm mt-1">
-                          Earn {TREEHOUSE_UNLOCK_STARS - totalStars} more &#11088; to unlock
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 {/* ------ "TAP BUDDY TO TALK" HINT ------ */}
                 {!showVoiceRecorder && (
@@ -454,7 +433,7 @@ export default function App() {
 
           {/* ====== VOICE RECORDER SIDE PANEL (click Buddy to open) ====== */}
           <AnimatePresence>
-            {showVoiceRecorder && currentView === 'exterior' && (
+            {showVoiceRecorder && (
               <motion.div
                 initial={{ x: 400, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}

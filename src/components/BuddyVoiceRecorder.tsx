@@ -12,9 +12,33 @@ interface VoiceRecorderProps {
   onPlaybackEnd?: () => void;
   onJokeTelling?: () => void;
   compact?: boolean;
+
+  /** Auto-stop recording when user stops talking (simple VAD). */
+  autoStopOnSilence?: boolean;
+  /** How long (ms) of silence to wait before stopping. */
+  silenceMs?: number;
+  /** Minimum recording duration (ms) before auto-stop can trigger. */
+  minRecordMs?: number;
+  /** Auto playback after stop. */
+  autoPlayback?: boolean;
+  /** Delay before playback ("thinking" delay), ms. */
+  playbackDelayMs?: number;
 }
 
-export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingStop, onPlaybackStart, onPlaybackEnd, onJokeTelling, compact = false }: VoiceRecorderProps) {
+export function BuddyVoiceRecorder({
+  onPlayback,
+  onRecordingStart,
+  onRecordingStop,
+  onPlaybackStart,
+  onPlaybackEnd,
+  onJokeTelling,
+  compact = false,
+  autoStopOnSilence = true,
+  silenceMs = 900,
+  minRecordMs = 600,
+  autoPlayback = true,
+  playbackDelayMs = 800,
+}: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -25,6 +49,16 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
   const audioChunksRef = useRef<Blob[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
+
+  // Voice activity detection (simple RMS)
+  const vadRafRef = useRef<number | null>(null);
+  const vadAnalyserRef = useRef<AnalyserNode | null>(null);
+  const vadStreamRef = useRef<MediaStream | null>(null);
+  const recordStartMsRef = useRef<number>(0);
+  const heardSpeechRef = useRef<boolean>(false);
+  const silenceStartMsRef = useRef<number | null>(null);
+  const autoPlaybackTimeoutRef = useRef<number | null>(null);
+
 
   // Buddy's funny responses
   const funnyResponses = [
@@ -49,9 +83,14 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
   useEffect(() => {
     // Initialize audio context
     audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (autoPlaybackTimeoutRef.current) window.clearTimeout(autoPlaybackTimeoutRef.current);
+      if (vadRafRef.current) cancelAnimationFrame(vadRafRef.current);
+      try {
+        vadStreamRef.current?.getTracks().forEach((t) => t.stop());
+      } catch {}
       if (audioContextRef.current) audioContextRef.current.close();
     };
   }, []);
@@ -59,7 +98,10 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
+      // Keep for cleanup
+      vadStreamRef.current = stream;
+
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -71,7 +113,7 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
       };
 
       mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
@@ -80,9 +122,13 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
       setBuddyMessage("I'm listening!");
       onRecordingStart?.();
 
-      // Recording timer (max 10 seconds)
+      recordStartMsRef.current = Date.now();
+      heardSpeechRef.current = false;
+      silenceStartMsRef.current = null;
+
+      // Recording timer (max 10 seconds fallback)
       timerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => {
+        setRecordingTime((prev) => {
           if (prev >= 10) {
             stopRecording();
             return 10;
@@ -91,6 +137,62 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
         });
       }, 1000);
 
+      // Simple VAD loop
+      if (autoStopOnSilence) {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const ctx = audioContextRef.current;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        vadAnalyserRef.current = analyser;
+
+        const data = new Uint8Array(analyser.fftSize);
+        const silenceThreshold = 0.02; // RMS threshold (tweakable)
+
+        const loop = () => {
+          if (!vadAnalyserRef.current || !isRecording) return;
+
+          analyser.getByteTimeDomainData(data);
+          // convert to [-1,1] float and compute RMS
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / data.length);
+
+          const now = Date.now();
+          const elapsed = now - recordStartMsRef.current;
+
+          if (rms > silenceThreshold) {
+            heardSpeechRef.current = true;
+            silenceStartMsRef.current = null;
+          } else {
+            // only start counting silence after user has spoken at least once
+            if (heardSpeechRef.current && silenceStartMsRef.current == null) {
+              silenceStartMsRef.current = now;
+            }
+          }
+
+          const silentFor = silenceStartMsRef.current ? now - silenceStartMsRef.current : 0;
+          if (
+            heardSpeechRef.current &&
+            elapsed >= minRecordMs &&
+            silenceStartMsRef.current &&
+            silentFor >= silenceMs
+          ) {
+            stopRecording();
+            return;
+          }
+
+          vadRafRef.current = requestAnimationFrame(loop);
+        };
+
+        vadRafRef.current = requestAnimationFrame(loop);
+      }
     } catch (error) {
       console.error('Error accessing microphone:', error);
       setBuddyMessage("Oops! I can't hear you. Check microphone permissions!");
@@ -102,12 +204,24 @@ export function BuddyVoiceRecorder({ onPlayback, onRecordingStart, onRecordingSt
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       setHasRecording(true);
-      setBuddyMessage("Got it! Let me play it back in my voice!");
+      setBuddyMessage("Hmm… let me think…");
       onRecordingStop?.();
-      
+
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
+      }
+      if (vadRafRef.current) {
+        cancelAnimationFrame(vadRafRef.current);
+        vadRafRef.current = null;
+      }
+
+      // Auto playback with a small "thinking" delay
+      if (autoPlayback) {
+        if (autoPlaybackTimeoutRef.current) window.clearTimeout(autoPlaybackTimeoutRef.current);
+        autoPlaybackTimeoutRef.current = window.setTimeout(() => {
+          playRecording();
+        }, playbackDelayMs);
       }
     }
   };
