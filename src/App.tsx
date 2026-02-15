@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SplashScreen } from './components/SplashScreen';
 import { ParentDashboard } from './components/ParentDashboard';
 import { BuddyVoiceRecorder } from './components/BuddyVoiceRecorder';
+import { HomeDock } from './components/HomeDock';
 import ActivityModal from './components/ActivityModal';
 import TreehouseInterior from './components/TreehouseInterior';
 import {
@@ -48,6 +49,10 @@ export default function App() {
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [treehouseLockMessage, setTreehouseLockMessage] = useState(false);
+
+  // Hybrid home UX
+  const [showBubbles, setShowBubbles] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
 
   // 3D/Animation State
   const [buddyMood, setBuddyMood] = useState<'idle' | 'talking' | 'laughing' | 'waving'>('idle');
@@ -157,6 +162,12 @@ export default function App() {
     setBuddyMood('waving');
     setShowVoiceRecorder(true);
     setTimeout(() => setBuddyMood('idle'), 2000);
+  };
+
+  const openRewards = () => {
+    playClick();
+    setShowRewards(true);
+    setTimeout(() => setShowRewards(false), 3500);
   };
 
   // Click treehouse → enter interior (if unlocked)
@@ -305,32 +316,80 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {/* ------ TREEHOUSE ENTER BUTTON (2D overlay - reliable on touch) ------ */}
+                {/* ------ HYBRID HOME DOCK (Talking-Tom style) ------ */}
+                <HomeDock
+                  onAction={(action) => {
+                    switch (action) {
+                      case 'music':
+                        toggleBackgroundMusic();
+                        break;
+                      case 'parent':
+                        setShowParentDashboard(true);
+                        break;
+                      case 'settings':
+                        setShowSettings(true);
+                        break;
+                      case 'rewards':
+                        openRewards();
+                        break;
+                      case 'explore':
+                        // Explore = show/hide floating bubbles so the environment stays interactive.
+                        playClick();
+                        setShowBubbles((v) => !v);
+                        break;
+                      case 'learn':
+                      case 'play':
+                        // For now, map to bubbles (quick access). We'll refine once you pick exact UX.
+                        playClick();
+                        setShowBubbles(true);
+                        break;
+                      default:
+                        break;
+                    }
+                  }}
+                />
+
+                {/* ------ QUICK REWARDS TOAST ------ */}
+                <AnimatePresence>
+                  {showRewards && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                      className="absolute bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 pointer-events-none z-30"
+                    >
+                      <div className="bg-black/55 backdrop-blur-xl rounded-2xl px-5 py-3 border border-white/15 shadow-2xl text-center">
+                        <div className="text-white font-extrabold text-lg">⭐ {totalStars} Stars</div>
+                        <div className="text-white/70 text-xs mt-1">Keep playing to unlock more!</div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* ------ TREEHOUSE ENTER BUTTON (small, not competing with dock) ------ */}
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.5 }}
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto z-20"
+                  transition={{ delay: 1.2 }}
+                  className="absolute bottom-24 md:bottom-28 left-3 md:left-4 pointer-events-auto z-20"
                 >
-                  <motion.button
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  <button
                     onClick={handleTreehouseClick}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl shadow-xl backdrop-blur-md border transition-all active:scale-95 ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-2xl shadow-xl backdrop-blur-md border transition-all active:scale-95 ${
                       treehouseUnlocked
-                        ? 'bg-amber-500/80 border-amber-300/40 text-white'
-                        : 'bg-black/40 border-white/10 text-white/70'
+                        ? 'bg-amber-500/75 border-amber-300/30 text-white'
+                        : 'bg-black/35 border-white/10 text-white/70'
                     }`}
                   >
-                    <span className="text-2xl">{treehouseUnlocked ? '\uD83C\uDFE0' : '\uD83D\uDD12'}</span>
-                    <span className="font-bold text-base">
-                      {treehouseUnlocked ? 'Enter Treehouse' : `Treehouse (${TREEHOUSE_UNLOCK_STARS - totalStars} \u2B50 to unlock)`}
+                    <span className="text-xl">{treehouseUnlocked ? '🏠' : '🔒'}</span>
+                    <span className="font-extrabold text-sm">
+                      {treehouseUnlocked ? 'Treehouse' : `${TREEHOUSE_UNLOCK_STARS - totalStars}⭐`}
                     </span>
-                  </motion.button>
+                  </button>
                 </motion.div>
 
-                {/* ------ FLOATING ACTIVITY BUBBLES (round icons) ------ */}
-                {ACTIVITIES.map((module, index) => {
+                {/* ------ FLOATING ACTIVITY BUBBLES (now opt-in via Explore/Play/Learn) ------ */}
+                {showBubbles && ACTIVITIES.map((module, index) => { 
                   const pos = ACTIVITY_POSITIONS[index % ACTIVITY_POSITIONS.length];
                   const isLocked = totalStars < module.starsRequired;
 
