@@ -440,9 +440,20 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = fals
       {/* UI overlay */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Header */}
-        <div className="pointer-events-auto flex justify-between items-center p-4 pt-6">
+        <div className="pointer-events-auto relative z-50 flex justify-between items-center p-4 pt-6">
           <button
-            onClick={onBack}
+            type="button"
+            onPointerDown={(e) => {
+              // iOS/PWA: prefer pointerdown for reliability
+              e.preventDefault();
+              e.stopPropagation();
+              onBack();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onBack();
+            }}
             className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold active:scale-90 transition-transform"
             aria-label="Back"
           >
