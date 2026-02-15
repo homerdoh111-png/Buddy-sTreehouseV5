@@ -1,11 +1,22 @@
 // TreehouseInterior3D - Phase 1: Tom-style fixed-camera 3D room + Buddy inside + clickable stations
 // Uses simple geometry + lighting + sparkles for an immersive illusion without needing a full interior asset.
 
-import { useMemo, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Html, Sparkles, useGLTF } from '@react-three/drei';
+import { useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Float, Html, Sparkles, useGLTF } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
+
+function MagicLightPulse() {
+  const lightRef = useRef<THREE.PointLight>(null);
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    if (!lightRef.current) return;
+    // gentle, non-distracting pulse
+    lightRef.current.intensity = 0.65 + Math.sin(t * 0.8) * 0.12;
+  });
+  return <pointLight ref={lightRef} position={[-3, 2.5, 2]} intensity={0.7} color={'#ffb6c9'} />;
+}
 
 import BasketballGame from './funActivities/BasketballGame';
 import FeedingGame from './funActivities/FeedingGame';
@@ -59,7 +70,13 @@ function Station({
   onClick: (id: StationId) => void;
 }) {
   return (
-    <group position={position}>
+    <Float
+      speed={1.2}
+      rotationIntensity={0.12}
+      floatIntensity={0.35}
+      floatingRange={[-0.08, 0.12]}
+    >
+      <group position={position}>
       <mesh
         onClick={(e) => {
           e.stopPropagation();
@@ -94,6 +111,7 @@ function Station({
         </div>
       </Html>
     </group>
+    </Float>
   );
 }
 
@@ -104,9 +122,9 @@ function Room({
   onBuddyClick?: () => void;
   onStationClick: (id: StationId) => void;
 }) {
-  // Simple room colors (warm, cozy, cartoon-ish)
-  const wallColor = '#7a4b2a';
-  const floorColor = '#4a2d1a';
+  // Phase-1 magical treehouse palette (warm wood + purple night + cyan glow)
+  const wallColor = '#5b341f';
+  const floorColor = '#2d1a12';
 
   return (
     <>
@@ -114,13 +132,13 @@ function Room({
       <ambientLight intensity={0.6} color={'#ffe7c9'} />
       <directionalLight
         position={[3, 6, 4]}
-        intensity={1.1}
+        intensity={1.05}
         color={'#fff2dc'}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
       />
-      <pointLight position={[-3, 2.5, 2]} intensity={0.7} color={'#ffb6c9'} />
+      <MagicLightPulse />
 
       {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.2, 0]} receiveShadow>
@@ -150,16 +168,26 @@ function Room({
         <meshStandardMaterial color={'#7dd3ff'} emissive={'#2aa6ff'} emissiveIntensity={0.55} />
       </mesh>
 
-      {/* Sparkles / magic */}
+      {/* Sparkles / magic (kept light for iPhone/iPad) */}
       <Sparkles
-        count={60}
-        speed={0.25}
-        opacity={0.6}
+        count={45}
+        speed={0.22}
+        opacity={0.55}
         scale={[10, 6, 10]}
-        size={4}
+        size={3}
         color={'#fff1a8'}
-        position={[0, 1.5, -1]}
+        position={[0, 1.6, -1]}
       />
+
+      {/* Light rays (simple translucent planes) */}
+      <mesh position={[0.2, 2.2, -5.6]} rotation={[0, 0, 0]}>
+        <planeGeometry args={[5.2, 3.4]} />
+        <meshBasicMaterial color={'#8be9ff'} transparent opacity={0.08} />
+      </mesh>
+      <mesh position={[-0.6, 2.0, -5.5]} rotation={[0, 0.12, 0]}>
+        <planeGeometry args={[6.0, 3.6]} />
+        <meshBasicMaterial color={'#c084fc'} transparent opacity={0.06} />
+      </mesh>
 
       {/* Buddy */}
       <BuddyModel3D onClick={onBuddyClick} />
