@@ -29,14 +29,15 @@ function InteriorCameraRig() {
     const cam: THREE.PerspectiveCamera | null = (camera as any)?.isPerspectiveCamera ? (camera as any) : null;
 
     if (isLandscapeTight) {
-      camera.position.set(1.2, 2.05, 9.1);
-      if (cam) cam.fov = 40;
+      // pull back + shift left a bit so right-side stations don't clip
+      camera.position.set(0.8, 2.05, 9.6);
+      if (cam) cam.fov = 42;
     } else {
-      camera.position.set(1.0, 1.9, 8.0);
-      if (cam) cam.fov = 45;
+      camera.position.set(0.75, 1.9, 8.2);
+      if (cam) cam.fov = 47;
     }
 
-    camera.lookAt(0.6, 0.9, 0);
+    camera.lookAt(0.4, 0.9, 0);
     cam?.updateProjectionMatrix();
   }, [camera, size.width, size.height]);
 
@@ -65,6 +66,9 @@ function BuddyModel3D({
   onDebug?: (info: { actionNames: string[] }) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const dragStartRef = useRef<{ x: number; buddyX: number } | null>(null);
+  const [buddyX, setBuddyX] = useState(-2.15);
+
   const { scene, animations } = useGLTF('/models/buddy-animated-opt.glb') as any;
   const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { actions } = useAnimations(animations ?? [], groupRef);
@@ -149,9 +153,10 @@ function BuddyModel3D({
   return (
     <group
       ref={groupRef}
-      // Buddy anchored slightly left + forward, Tom-style composition.
-      position={[-2.15, -1.55, -0.35]}
-      rotation={[0, 0.55, 0]}
+      // Buddy anchored left; can slide a bit (Tom-like "pet" feel).
+      position={[buddyX, -1.55, -0.35]}
+      // Face toward camera by default (3/4), not away.
+      rotation={[0, -0.55, 0]}
       scale={6.4}
       onClick={(e) => {
         e.stopPropagation();
@@ -160,10 +165,22 @@ function BuddyModel3D({
       }}
       onPointerDown={(e) => {
         e.stopPropagation();
+        // Allow slight horizontal drag to reposition Buddy.
+        if (e.pointerType !== 'mouse') {
+          dragStartRef.current = { x: e.clientX, buddyX };
+        }
         startHold();
+      }}
+      onPointerMove={(e) => {
+        if (!dragStartRef.current) return;
+        const dx = e.clientX - dragStartRef.current.x;
+        // Convert px drag to world-ish units (tuned). Clamp to keep Buddy in frame.
+        const next = dragStartRef.current.buddyX + dx * 0.01;
+        setBuddyX(Math.max(-3.2, Math.min(-0.8, next)));
       }}
       onPointerUp={(e) => {
         e.stopPropagation();
+        dragStartRef.current = null;
         cancelHold();
         if (!holdFiredRef.current) {
           triggerTapReact();
@@ -171,10 +188,12 @@ function BuddyModel3D({
       }}
       onPointerCancel={(e) => {
         e.stopPropagation();
+        dragStartRef.current = null;
         cancelHold();
       }}
       onPointerLeave={(e) => {
         e.stopPropagation();
+        dragStartRef.current = null;
         cancelHold();
       }}
       onPointerOver={() => {
@@ -413,7 +432,7 @@ function Room({
       <BuddyModel3D onClick={onBuddyClick} onDebug={onBuddyDebug} />
 
       {/* Stations (grouped to the right so Buddy is the star) */}
-      <group position={[2.2, 0, 0]}>
+      <group position={[1.1, 0, 0]}>
         <Station
           id="feeding"
           label="Eat"
@@ -518,7 +537,15 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = fals
       </Canvas>
 
       {/* UI overlay */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
         {/* Header */}
         <div className="pointer-events-auto relative z-50 flex justify-between items-center p-4 pt-6">
           <button
