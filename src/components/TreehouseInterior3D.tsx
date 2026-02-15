@@ -7,6 +7,7 @@ import { Center, Html, Sparkles, useAnimations, useGLTF } from '@react-three/dre
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
+import { computeFitScale, computeGroundOffsetY } from '../utils/fitModel';
 
 function MagicLightPulse() {
   const lightRef = useRef<THREE.PointLight>(null);
@@ -72,6 +73,14 @@ function BuddyModel3D({
   const { scene, animations } = useGLTF('/models/buddy-animated-opt.glb') as any;
   const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { actions } = useAnimations(animations ?? [], groupRef);
+
+  // Standardize Buddy size across scenes (single knob)
+  const BUDDY_TARGET_HEIGHT = 2.55;
+  const { buddyScale, buddyGroundOffset } = useMemo(() => {
+    const s = computeFitScale(clonedScene, BUDDY_TARGET_HEIGHT);
+    const off = computeGroundOffsetY(clonedScene);
+    return { buddyScale: s, buddyGroundOffset: off };
+  }, [clonedScene]);
 
   useEffect(() => {
     const names = actions ? Object.keys(actions).filter(Boolean) : [];
@@ -154,10 +163,10 @@ function BuddyModel3D({
     <group
       ref={groupRef}
       // Buddy anchored left; can slide a bit (Tom-like "pet" feel).
-      position={[buddyX, -1.55, -0.35]}
+      position={[buddyX, -2.2 + buddyGroundOffset * buddyScale, -0.35]}
       // Face toward camera by default (3/4), not away.
       rotation={[0, -0.55, 0]}
-      scale={6.4}
+      scale={buddyScale}
       onClick={(e) => {
         e.stopPropagation();
         // Tap = react only. Talk is press-and-hold.

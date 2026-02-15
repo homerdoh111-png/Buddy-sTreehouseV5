@@ -9,6 +9,7 @@ import {
   useTexture,
 } from '@react-three/drei';
 import * as THREE from 'three';
+import { computeFitScale, computeGroundOffsetY } from '../utils/fitModel';
 
 // ============================================================
 // REACT ERROR BOUNDARY - proper class component
@@ -65,6 +66,14 @@ function BuddyModel({ isTalking = false, mood = 'idle', onClick }: BuddyModelPro
   // Clone once so useGLTF's shared scene isn't mutated
   const clonedScene = useMemo(() => scene.clone(true), [scene]);
 
+  // Standardize Buddy size across scenes (single knob)
+  const BUDDY_TARGET_HEIGHT = 2.55;
+  const { buddyScale, buddyGroundOffset } = useMemo(() => {
+    const s = computeFitScale(clonedScene, BUDDY_TARGET_HEIGHT);
+    const off = computeGroundOffsetY(clonedScene);
+    return { buddyScale: s, buddyGroundOffset: off };
+  }, [clonedScene]);
+
   // Play the appropriate animation based on mood
   useEffect(() => {
     if (!actions || Object.keys(actions).length === 0) return;
@@ -99,15 +108,15 @@ function BuddyModel({ isTalking = false, mood = 'idle', onClick }: BuddyModelPro
   // Gentle idle bob
   useFrame((state) => {
     if (group.current && mood === 'idle' && !isTalking) {
-      group.current.position.y = 1.5 + Math.sin(state.clock.elapsedTime * 0.8) * 0.1;
+      group.current.position.y = 1.5 + buddyGroundOffset * buddyScale + Math.sin(state.clock.elapsedTime * 0.8) * 0.06;
     }
   });
 
   return (
     <group
       ref={group}
-      position={[-3.5, 1.5, 3]}
-      scale={hovered ? 6.3 : 6.0}
+      position={[-3.5, 1.5 + buddyGroundOffset * buddyScale, 3]}
+      scale={hovered ? buddyScale * 1.04 : buddyScale}
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
       onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
