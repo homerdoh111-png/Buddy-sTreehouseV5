@@ -102,7 +102,16 @@ export function BuddyVoiceRecorder({
       // Keep for cleanup
       vadStreamRef.current = stream;
 
-      const mediaRecorder = new MediaRecorder(stream);
+      // iOS Safari prefers audio/mp4; Chrome prefers audio/webm.
+      const preferredTypes = [
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
+        'audio/webm;codecs=opus',
+        'audio/webm',
+      ];
+      const mimeType = preferredTypes.find((t) => (window as any).MediaRecorder?.isTypeSupported?.(t));
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
@@ -236,8 +245,9 @@ export function BuddyVoiceRecorder({
     onPlaybackStart?.();
 
     try {
-      // Create audio blob
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      // Create audio blob (use recorder's mimeType when available)
+      const recorderType = mediaRecorderRef.current?.mimeType;
+      const audioBlob = new Blob(audioChunksRef.current, { type: recorderType || 'audio/webm' });
       const arrayBuffer = await audioBlob.arrayBuffer();
       
       if (!audioContextRef.current) {
