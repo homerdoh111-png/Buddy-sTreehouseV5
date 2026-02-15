@@ -2,8 +2,8 @@
 // Uses simple geometry + lighting + sparkles for an immersive illusion without needing a full interior asset.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Center, Float, Html, Sparkles, useAnimations, useGLTF } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Center, Html, Sparkles, useAnimations, useGLTF } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { SkeletonUtils } from 'three-stdlib';
@@ -14,9 +14,33 @@ function MagicLightPulse() {
     const t = clock.getElapsedTime();
     if (!lightRef.current) return;
     // gentle, non-distracting pulse
-    lightRef.current.intensity = 0.65 + Math.sin(t * 0.8) * 0.12;
+    lightRef.current.intensity = 0.55 + Math.sin(t * 0.8) * 0.10;
   });
-  return <pointLight ref={lightRef} position={[-3, 2.5, 2]} intensity={0.7} color={'#ffb6c9'} />;
+  return <pointLight ref={lightRef} position={[-2.8, 2.6, 1.8]} intensity={0.6} color={'#ffccaa'} />;
+}
+
+function InteriorCameraRig() {
+  const { camera, size } = useThree();
+
+  useEffect(() => {
+    const aspect = size.width / Math.max(1, size.height);
+    const isLandscapeTight = aspect > 1.15 && size.height < 480;
+
+    const cam: THREE.PerspectiveCamera | null = (camera as any)?.isPerspectiveCamera ? (camera as any) : null;
+
+    if (isLandscapeTight) {
+      camera.position.set(1.2, 2.05, 9.1);
+      if (cam) cam.fov = 40;
+    } else {
+      camera.position.set(1.0, 1.9, 8.0);
+      if (cam) cam.fov = 45;
+    }
+
+    camera.lookAt(0.6, 0.9, 0);
+    cam?.updateProjectionMatrix();
+  }, [camera, size.width, size.height]);
+
+  return null;
 }
 
 import BasketballGame from './funActivities/BasketballGame';
@@ -125,7 +149,9 @@ function BuddyModel3D({
   return (
     <group
       ref={groupRef}
-      position={[0, -1.55, -0.8]}
+      // Buddy anchored slightly left + forward, Tom-style composition.
+      position={[-2.15, -1.55, -0.35]}
+      rotation={[0, 0.55, 0]}
       scale={6.4}
       onClick={(e) => {
         e.stopPropagation();
@@ -181,7 +207,15 @@ function Station({
   onClick: (id: StationId) => void;
 }) {
   const baseColor = new THREE.Color(color);
-  const glowColor = new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.35);
+  const glowColor = new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.28);
+  const wobbleRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (!wobbleRef.current) return;
+    const t = clock.getElapsedTime();
+    // tiny "alive" motion (toy-like, not floaty UI)
+    wobbleRef.current.rotation.y = Math.sin(t * 0.55) * 0.08;
+  });
 
   const handle = (e: any) => {
     e.stopPropagation();
@@ -189,70 +223,110 @@ function Station({
   };
 
   return (
-    <Float speed={1.0} rotationIntensity={0.10} floatIntensity={0.25} floatingRange={[-0.06, 0.10]}>
-      <group position={position}>
-        {/* Invisible hit plate (big, reliable touch target) */}
-        <mesh onClick={handle} onPointerDown={handle}>
-          <boxGeometry args={[3.2, 2.2, 2.2]} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
+    <group position={position}>
+      {/* Invisible hit plate (big, reliable touch target) */}
+      <mesh onClick={handle} onPointerDown={handle}>
+        <boxGeometry args={[3.4, 2.4, 2.4]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
 
-        {/* Magical prop: stylized "altar" + glow + sparkle ring */}
-        <mesh position={[0, -0.35, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[1.25, 1.35, 0.7, 24]} />
-          <meshStandardMaterial color={baseColor} roughness={0.55} metalness={0.02} />
-        </mesh>
+      {/* "Wood stump" base (cozy treehouse vibe) */}
+      <mesh position={[0, -0.55, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.25, 1.4, 0.55, 20]} />
+        <meshStandardMaterial color={'#7a4a2a'} roughness={0.95} metalness={0.0} />
+      </mesh>
+      <mesh position={[0, -0.26, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.05, 1.18, 0.18, 18]} />
+        <meshStandardMaterial color={'#8b5a3c'} roughness={0.9} metalness={0.0} />
+      </mesh>
 
-        <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
-          <sphereGeometry args={[0.52, 22, 22]} />
-          <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.6} roughness={0.35} />
-        </mesh>
+      {/* Station object (distinct silhouette per station) */}
+      <group ref={wobbleRef}>
+        {id === 'feeding' && (
+          <>
+            {/* bowl */}
+            <mesh position={[0, 0.32, 0]} castShadow receiveShadow>
+              <cylinderGeometry args={[0.62, 0.8, 0.35, 22]} />
+              <meshStandardMaterial color={baseColor} roughness={0.35} metalness={0.05} />
+            </mesh>
+            {/* honey/food blob */}
+            <mesh position={[0, 0.52, 0]} castShadow receiveShadow>
+              <sphereGeometry args={[0.34, 18, 18]} />
+              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.45} roughness={0.25} />
+            </mesh>
+          </>
+        )}
 
-        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.9, 1.35, 40]} />
-          <meshBasicMaterial color={glowColor} transparent opacity={0.22} />
-        </mesh>
+        {id === 'bedtime' && (
+          <>
+            {/* pillow */}
+            <mesh position={[0, 0.32, 0]} castShadow receiveShadow>
+              <boxGeometry args={[1.15, 0.38, 0.85]} />
+              <meshStandardMaterial color={baseColor} roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
+              <sphereGeometry args={[0.22, 14, 14]} />
+              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.35} roughness={0.55} />
+            </mesh>
+          </>
+        )}
 
-        <Sparkles
-          count={18}
-          speed={0.35}
-          opacity={0.75}
-          scale={[2.6, 1.6, 2.6]}
-          size={3}
-          color={'#fff1a8'}
-          position={[0, 0.3, 0]}
-        />
-
-        {/* Label */}
-        <Html center distanceFactor={10}>
-          <button
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onClick(id);
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick(id);
-            }}
-            style={{
-              transform: 'translateY(-58px)',
-              textAlign: 'center',
-              userSelect: 'none',
-              pointerEvents: 'auto',
-              color: 'white',
-              fontWeight: 900,
-              border: 'none',
-              background: 'transparent',
-              padding: 0,
-              textShadow: '0 2px 12px rgba(0,0,0,0.75)',
-            }}
-          >
-            <div style={{ fontSize: 28, lineHeight: '28px' }}>{emoji}</div>
-            <div style={{ fontSize: 14, opacity: 0.95 }}>{label}</div>
-          </button>
-        </Html>
+        {id === 'basketball' && (
+          <>
+            {/* hoop frame */}
+            <mesh position={[0, 0.55, -0.25]} rotation={[0, 0, 0]} castShadow receiveShadow>
+              <torusGeometry args={[0.55, 0.08, 10, 32]} />
+              <meshStandardMaterial color={baseColor} emissive={baseColor} emissiveIntensity={0.25} roughness={0.35} />
+            </mesh>
+            {/* ball */}
+            <mesh position={[0, 0.42, 0.35]} castShadow receiveShadow>
+              <sphereGeometry args={[0.28, 18, 18]} />
+              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.25} roughness={0.45} />
+            </mesh>
+          </>
+        )}
       </group>
-    </Float>
+
+      {/* Cozy sparkle accent */}
+      <Sparkles
+        count={10}
+        speed={0.22}
+        opacity={0.55}
+        scale={[2.4, 1.3, 2.4]}
+        size={2.5}
+        color={'#ffeaa6'}
+        position={[0, 0.35, 0]}
+      />
+
+      {/* Label */}
+      <Html center distanceFactor={10}>
+        <button
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onClick(id);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(id);
+          }}
+          style={{
+            transform: 'translateY(-56px)',
+            textAlign: 'center',
+            userSelect: 'none',
+            pointerEvents: 'auto',
+            color: 'white',
+            fontWeight: 900,
+            border: 'none',
+            background: 'transparent',
+            padding: 0,
+            textShadow: '0 2px 12px rgba(0,0,0,0.75)',
+          }}
+        >
+          <div style={{ fontSize: 28, lineHeight: '28px' }}>{emoji}</div>
+          <div style={{ fontSize: 14, opacity: 0.95 }}>{label}</div>
+        </button>
+      </Html>
+    </group>
   );
 }
 
@@ -265,22 +339,25 @@ function Room({
   onStationClick: (id: StationId) => void;
   onBuddyDebug?: (info: { actionNames: string[] }) => void;
 }) {
-  // Phase-1 magical treehouse palette (warm wood + purple night + cyan glow)
-  const wallColor = '#5b341f';
-  const floorColor = '#2d1a12';
+  // Cozy magical treehouse palette (warm wood + lantern glow + soft night accents)
+  const wallColor = '#6a3f25';
+  const floorColor = '#2a1a12';
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.6} color={'#ffe7c9'} />
+      {/* Lighting (Tom-like polish: warm key + cool rim + gentle ambient) */}
+      <ambientLight intensity={0.45} color={'#ffe9d1'} />
+      {/* warm key */}
       <directionalLight
-        position={[3, 6, 4]}
+        position={[4.2, 6.2, 3.8]}
         intensity={1.05}
-        color={'#fff2dc'}
+        color={'#fff1db'}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
+      {/* cool rim */}
+      <directionalLight position={[-6.5, 4.6, 6.5]} intensity={0.35} color={'#9ad7ff'} />
       <MagicLightPulse />
 
       {/* Floor */}
@@ -305,61 +382,63 @@ function Room({
         <meshStandardMaterial color={wallColor} roughness={0.95} />
       </mesh>
 
-      {/* "Window" magic glow */}
-      <mesh position={[0, 2.4, -5.9]}>
-        <planeGeometry args={[4.5, 2.8]} />
-        <meshStandardMaterial color={'#7dd3ff'} emissive={'#2aa6ff'} emissiveIntensity={0.55} />
+      {/* "Window" lantern glow */}
+      <mesh position={[0.2, 2.45, -5.9]}>
+        <planeGeometry args={[4.7, 2.9]} />
+        <meshStandardMaterial color={'#ffd8a8'} emissive={'#ff9b3d'} emissiveIntensity={0.35} />
       </mesh>
 
       {/* Sparkles / magic (kept light for iPhone/iPad) */}
       <Sparkles
-        count={45}
-        speed={0.22}
-        opacity={0.55}
+        count={28}
+        speed={0.18}
+        opacity={0.45}
         scale={[10, 6, 10]}
         size={3}
-        color={'#fff1a8'}
-        position={[0, 1.6, -1]}
+        color={'#ffeaa6'}
+        position={[0, 1.55, -1]}
       />
 
       {/* Light rays (simple translucent planes) */}
-      <mesh position={[0.2, 2.2, -5.6]} rotation={[0, 0, 0]}>
+      <mesh position={[0.25, 2.2, -5.6]} rotation={[0, 0, 0]}>
         <planeGeometry args={[5.2, 3.4]} />
-        <meshBasicMaterial color={'#8be9ff'} transparent opacity={0.08} />
+        <meshBasicMaterial color={'#ffd8a8'} transparent opacity={0.06} />
       </mesh>
-      <mesh position={[-0.6, 2.0, -5.5]} rotation={[0, 0.12, 0]}>
+      <mesh position={[-0.65, 2.0, -5.5]} rotation={[0, 0.12, 0]}>
         <planeGeometry args={[6.0, 3.6]} />
-        <meshBasicMaterial color={'#c084fc'} transparent opacity={0.06} />
+        <meshBasicMaterial color={'#9ad7ff'} transparent opacity={0.05} />
       </mesh>
 
       {/* Buddy */}
       <BuddyModel3D onClick={onBuddyClick} onDebug={onBuddyDebug} />
 
-      {/* Stations (simple 3D props for now) */}
-      <Station
-        id="feeding"
-        label="Eat"
-        emoji="🍕"
-        position={[-4.2, -1.0, 1.4]}
-        color={'#f59e0b'}
-        onClick={onStationClick}
-      />
-      <Station
-        id="bedtime"
-        label="Sleep"
-        emoji="🛏️"
-        position={[4.2, -1.0, 1.4]}
-        color={'#6366f1'}
-        onClick={onStationClick}
-      />
-      <Station
-        id="basketball"
-        label="Basketball"
-        emoji="🏀"
-        position={[0, -1.0, 0.9]}
-        color={'#ef4444'}
-        onClick={onStationClick}
-      />
+      {/* Stations (grouped to the right so Buddy is the star) */}
+      <group position={[2.2, 0, 0]}>
+        <Station
+          id="feeding"
+          label="Eat"
+          emoji="🍯"
+          position={[2.3, -1.15, 1.2]}
+          color={'#f59e0b'}
+          onClick={onStationClick}
+        />
+        <Station
+          id="bedtime"
+          label="Sleep"
+          emoji="😴"
+          position={[4.9, -1.15, 0.9]}
+          color={'#6366f1'}
+          onClick={onStationClick}
+        />
+        <Station
+          id="basketball"
+          label="Ball"
+          emoji="🏀"
+          position={[3.6, -1.1, -0.2]}
+          color={'#ef4444'}
+          onClick={onStationClick}
+        />
+      </group>
 
       {/* Soft vignette overlay */}
       <Html fullscreen>
@@ -430,6 +509,7 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = fals
         }}
       >
         {/* Fixed camera: no orbit controls (Tom-style) */}
+        <InteriorCameraRig />
         <Room
           onBuddyClick={onBuddyClick}
           onStationClick={(id) => setActiveGame(id)}
