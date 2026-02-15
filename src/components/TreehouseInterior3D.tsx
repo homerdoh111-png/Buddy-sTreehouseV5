@@ -619,14 +619,14 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = fals
               onBack();
             }}
             className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-bold active:scale-90 transition-transform"
-            aria-label="Back"
+            aria-label="Home"
           >
-            ←
+            ⌂
           </button>
 
           <div className="text-center">
-            <div className="text-xl font-black text-white drop-shadow-lg">Buddy’s Room</div>
-            <div className="text-[11px] font-bold text-white/70">Tap Buddy • Tap stations</div>
+            <div className="text-xl font-black text-white drop-shadow-lg">Treehouse</div>
+            <div className="text-[11px] font-bold text-white/0 select-none">.</div>
           </div>
 
           <div className="bg-black/30 backdrop-blur-sm rounded-xl px-4 py-2">
