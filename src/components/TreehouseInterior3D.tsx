@@ -180,60 +180,78 @@ function Station({
   color: string;
   onClick: (id: StationId) => void;
 }) {
+  const baseColor = new THREE.Color(color);
+  const glowColor = new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.35);
+
+  const handle = (e: any) => {
+    e.stopPropagation();
+    onClick(id);
+  };
+
   return (
-    <Float
-      speed={1.2}
-      rotationIntensity={0.12}
-      floatIntensity={0.35}
-      floatingRange={[-0.08, 0.12]}
-    >
+    <Float speed={1.0} rotationIntensity={0.10} floatIntensity={0.25} floatingRange={[-0.06, 0.10]}>
       <group position={position}>
-      <mesh
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick(id);
-        }}
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onClick(id);
-        }}
-        onPointerOver={() => {
-          document.body.style.cursor = 'pointer';
-        }}
-        onPointerOut={() => {
-          document.body.style.cursor = 'default';
-        }}
-        castShadow
-        receiveShadow
-      >
-        <boxGeometry args={[1.6, 1.6, 1.6]} />
-        <meshStandardMaterial color={color} roughness={0.35} metalness={0.05} />
-      </mesh>
-      <Html center distanceFactor={10}>
-        <div
-          onPointerDown={(e) => {
-            e.stopPropagation();
-            onClick(id);
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick(id);
-          }}
-          style={{
-            transform: 'translateY(-58px)',
-            textAlign: 'center',
-            userSelect: 'none',
-            pointerEvents: 'auto',
-            color: 'white',
-            fontWeight: 900,
-            textShadow: '0 2px 12px rgba(0,0,0,0.75)',
-          }}
-        >
-          <div style={{ fontSize: 28, lineHeight: '28px' }}>{emoji}</div>
-          <div style={{ fontSize: 14, opacity: 0.95 }}>{label}</div>
-        </div>
-      </Html>
-    </group>
+        {/* Invisible hit plate (big, reliable touch target) */}
+        <mesh onClick={handle} onPointerDown={handle}>
+          <boxGeometry args={[3.2, 2.2, 2.2]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+
+        {/* Magical prop: stylized "altar" + glow + sparkle ring */}
+        <mesh position={[0, -0.35, 0]} castShadow receiveShadow>
+          <cylinderGeometry args={[1.25, 1.35, 0.7, 24]} />
+          <meshStandardMaterial color={baseColor} roughness={0.55} metalness={0.02} />
+        </mesh>
+
+        <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
+          <sphereGeometry args={[0.52, 22, 22]} />
+          <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.6} roughness={0.35} />
+        </mesh>
+
+        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.9, 1.35, 40]} />
+          <meshBasicMaterial color={glowColor} transparent opacity={0.22} />
+        </mesh>
+
+        <Sparkles
+          count={18}
+          speed={0.35}
+          opacity={0.75}
+          scale={[2.6, 1.6, 2.6]}
+          size={3}
+          color={'#fff1a8'}
+          position={[0, 0.3, 0]}
+        />
+
+        {/* Label */}
+        <Html center distanceFactor={10}>
+          <button
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onClick(id);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick(id);
+            }}
+            style={{
+              transform: 'translateY(-58px)',
+              textAlign: 'center',
+              userSelect: 'none',
+              pointerEvents: 'auto',
+              color: 'white',
+              fontWeight: 900,
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
+              textShadow: '0 2px 12px rgba(0,0,0,0.75)',
+            }}
+          >
+            <div style={{ fontSize: 28, lineHeight: '28px' }}>{emoji}</div>
+            <div style={{ fontSize: 14, opacity: 0.95 }}>{label}</div>
+          </button>
+        </Html>
+      </group>
     </Float>
   );
 }
