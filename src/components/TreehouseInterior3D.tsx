@@ -3,9 +3,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Html, Sparkles, useAnimations, useGLTF } from '@react-three/drei';
+import { Center, Float, Html, Sparkles, useAnimations, useGLTF } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
+import { SkeletonUtils } from 'three-stdlib';
 
 function MagicLightPulse() {
   const lightRef = useRef<THREE.PointLight>(null);
@@ -33,7 +34,7 @@ type StationId = 'basketball' | 'feeding' | 'bedtime';
 function BuddyModel3D({ onClick }: { onClick?: () => void }) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/models/buddy-animated-opt.glb') as any;
-  const clonedScene = useMemo(() => scene.clone(true), [scene]);
+  const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { actions } = useAnimations(animations ?? [], groupRef);
 
   useEffect(() => {
@@ -68,8 +69,8 @@ function BuddyModel3D({ onClick }: { onClick?: () => void }) {
   return (
     <group
       ref={groupRef}
-      position={[0, -1.2, 0]}
-      scale={5.8}
+      position={[0, -1.45, 1.2]}
+      scale={9.5}
       onClick={(e) => {
         e.stopPropagation();
         triggerTapReact();
@@ -87,7 +88,9 @@ function BuddyModel3D({ onClick }: { onClick?: () => void }) {
         document.body.style.cursor = 'default';
       }}
     >
-      <primitive object={clonedScene} />
+      <Center>
+        <primitive object={clonedScene} />
+      </Center>
     </group>
   );
 }
@@ -133,16 +136,24 @@ function Station({
         castShadow
         receiveShadow
       >
-        <boxGeometry args={[1.2, 1.2, 1.2]} />
+        <boxGeometry args={[1.6, 1.6, 1.6]} />
         <meshStandardMaterial color={color} roughness={0.35} metalness={0.05} />
       </mesh>
       <Html center distanceFactor={10}>
         <div
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onClick(id);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(id);
+          }}
           style={{
             transform: 'translateY(-58px)',
             textAlign: 'center',
             userSelect: 'none',
-            pointerEvents: 'none',
+            pointerEvents: 'auto',
             color: 'white',
             fontWeight: 900,
             textShadow: '0 2px 12px rgba(0,0,0,0.75)',
