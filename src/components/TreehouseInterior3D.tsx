@@ -81,29 +81,52 @@ function BuddyModel3D({
 
   const holdTimerRef = useRef<number | null>(null);
   const holdFiredRef = useRef<boolean>(false);
+  const isHoldingRef = useRef<boolean>(false);
 
-  // Press-and-hold to talk (prevents accidental popup when Buddy is large on screen)
+  // Press-and-hold to talk (iOS-safe): only fires if we still believe the pointer is down.
   const startHold = () => {
+    isHoldingRef.current = true;
     holdFiredRef.current = false;
     if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
     holdTimerRef.current = window.setTimeout(() => {
+      if (!isHoldingRef.current) return;
       holdFiredRef.current = true;
       onClick?.();
     }, 450);
   };
 
   const cancelHold = () => {
+    isHoldingRef.current = false;
     if (holdTimerRef.current) {
       window.clearTimeout(holdTimerRef.current);
       holdTimerRef.current = null;
     }
   };
 
+  // iOS Safari sometimes drops pointerup/pointercancel; add global cancel hooks.
+  useEffect(() => {
+    const cancel = () => cancelHold();
+    window.addEventListener('pointerup', cancel, { passive: true });
+    window.addEventListener('pointercancel', cancel, { passive: true });
+    window.addEventListener('touchend', cancel, { passive: true });
+    window.addEventListener('touchcancel', cancel, { passive: true });
+    window.addEventListener('blur', cancel);
+    document.addEventListener('visibilitychange', cancel);
+    return () => {
+      window.removeEventListener('pointerup', cancel);
+      window.removeEventListener('pointercancel', cancel);
+      window.removeEventListener('touchend', cancel);
+      window.removeEventListener('touchcancel', cancel);
+      window.removeEventListener('blur', cancel);
+      document.removeEventListener('visibilitychange', cancel);
+    };
+  }, []);
+
   return (
     <group
       ref={groupRef}
-      position={[0, -1.45, 0.6]}
-      scale={7.2}
+      position={[0, -1.55, -0.8]}
+      scale={6.4}
       onClick={(e) => {
         e.stopPropagation();
         // Tap = react only. Talk is press-and-hold.
@@ -299,7 +322,7 @@ function Room({
         id="feeding"
         label="Eat"
         emoji="🍕"
-        position={[-4.5, -1.2, -1.5]}
+        position={[-4.2, -1.0, 1.4]}
         color={'#f59e0b'}
         onClick={onStationClick}
       />
@@ -307,7 +330,7 @@ function Room({
         id="bedtime"
         label="Sleep"
         emoji="🛏️"
-        position={[4.5, -1.2, -1.5]}
+        position={[4.2, -1.0, 1.4]}
         color={'#6366f1'}
         onClick={onStationClick}
       />
@@ -315,7 +338,7 @@ function Room({
         id="basketball"
         label="Basketball"
         emoji="🏀"
-        position={[0, -1.2, -4.2]}
+        position={[0, -1.0, 0.9]}
         color={'#ef4444'}
         onClick={onStationClick}
       />
