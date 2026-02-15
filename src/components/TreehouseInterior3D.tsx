@@ -60,6 +60,10 @@ function BuddyModel3D({ onClick }: { onClick?: () => void }) {
         e.stopPropagation();
         onClick?.();
       }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
       onPointerOver={() => {
         document.body.style.cursor = 'pointer';
       }}
@@ -97,6 +101,10 @@ function Station({
       <group position={position}>
       <mesh
         onClick={(e) => {
+          e.stopPropagation();
+          onClick(id);
+        }}
+        onPointerDown={(e) => {
           e.stopPropagation();
           onClick(id);
         }}
