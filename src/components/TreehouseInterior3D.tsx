@@ -59,7 +59,7 @@ function BuddyModel3D({
     };
   }, [actions, onDebug]);
 
-  const lastTapMsRef = useRef<number>(0);
+  // (tap timing ref removed; using press-and-hold)
 
   const triggerTapReact = () => {
     const tap = actions?.TapReact;
@@ -79,13 +79,23 @@ function BuddyModel3D({
     } catch {}
   };
 
-  // Double-tap to talk (prevents accidental popup when Buddy is large on screen)
-  const maybeOpenTalk = () => {
-    const now = Date.now();
-    const dt = now - lastTapMsRef.current;
-    lastTapMsRef.current = now;
-    if (dt > 0 && dt < 320) {
+  const holdTimerRef = useRef<number | null>(null);
+  const holdFiredRef = useRef<boolean>(false);
+
+  // Press-and-hold to talk (prevents accidental popup when Buddy is large on screen)
+  const startHold = () => {
+    holdFiredRef.current = false;
+    if (holdTimerRef.current) window.clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = window.setTimeout(() => {
+      holdFiredRef.current = true;
       onClick?.();
+    }, 450);
+  };
+
+  const cancelHold = () => {
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
     }
   };
 
@@ -96,13 +106,27 @@ function BuddyModel3D({
       scale={7.2}
       onClick={(e) => {
         e.stopPropagation();
+        // Tap = react only. Talk is press-and-hold.
         triggerTapReact();
-        maybeOpenTalk();
       }}
       onPointerDown={(e) => {
         e.stopPropagation();
-        triggerTapReact();
-        maybeOpenTalk();
+        startHold();
+      }}
+      onPointerUp={(e) => {
+        e.stopPropagation();
+        cancelHold();
+        if (!holdFiredRef.current) {
+          triggerTapReact();
+        }
+      }}
+      onPointerCancel={(e) => {
+        e.stopPropagation();
+        cancelHold();
+      }}
+      onPointerLeave={(e) => {
+        e.stopPropagation();
+        cancelHold();
       }}
       onPointerOver={() => {
         document.body.style.cursor = 'pointer';
