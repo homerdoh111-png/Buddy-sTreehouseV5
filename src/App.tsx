@@ -8,7 +8,7 @@ import { ParentDashboard } from './components/ParentDashboard';
 import { BuddyVoiceRecorder } from './components/BuddyVoiceRecorder';
 import { HomeDock } from './components/HomeDock';
 import ActivityModal from './components/ActivityModal';
-import TreehouseInterior from './components/TreehouseInterior';
+import TreehouseInterior3D from './components/TreehouseInterior3D';
 import {
   Confetti,
   LevelUpAnimation,
@@ -190,7 +190,7 @@ export default function App() {
         <>
           {/* ====== INTERIOR VIEW ====== */}
           {currentView === 'interior' && (
-            <TreehouseInterior
+            <TreehouseInterior3D
               onBack={() => setCurrentView('exterior')}
               onBuddyClick={() => {
                 playClick();
