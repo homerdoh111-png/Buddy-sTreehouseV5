@@ -1,9 +1,9 @@
 // TreehouseInterior3D - Phase 1: Tom-style fixed-camera 3D room + Buddy inside + clickable stations
 // Uses simple geometry + lighting + sparkles for an immersive illusion without needing a full interior asset.
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Html, Sparkles, useGLTF } from '@react-three/drei';
+import { Float, Html, Sparkles, useAnimations, useGLTF } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 
@@ -31,25 +31,39 @@ interface TreehouseInterior3DProps {
 type StationId = 'basketball' | 'feeding' | 'bedtime';
 
 function BuddyModel3D({ onClick }: { onClick?: () => void }) {
-  const { scene } = useGLTF('/models/buddy.glb');
-  const clonedScene = useMemo(() => scene.clone(true), [scene]);
   const groupRef = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF('/models/buddy-animated-opt.glb') as any;
+  const clonedScene = useMemo(() => scene.clone(true), [scene]);
+  const { actions } = useAnimations(animations ?? [], groupRef);
 
-  // The Buddy GLB has no baked animation clips, so we add a light “alive” idle:
-  // breathing + gentle sway + tiny bob (Tom-style responsiveness without being distracting).
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime();
-    const g = groupRef.current;
-    if (!g) return;
+  useEffect(() => {
+    const idle = actions?.Idle;
+    if (!idle) return;
+    idle.reset().fadeIn(0.2).play();
+    return () => {
+      try {
+        idle.fadeOut(0.15);
+      } catch {}
+    };
+  }, [actions]);
 
-    const bob = Math.sin(t * 1.3) * 0.05;
-    const sway = Math.sin(t * 0.7) * 0.12;
-    const breathe = 1 + Math.sin(t * 1.1) * 0.01;
-
-    g.position.y = -1.2 + bob;
-    g.rotation.y = sway;
-    g.scale.setScalar(5.8 * breathe);
-  });
+  const triggerTapReact = () => {
+    const tap = actions?.TapReact;
+    const idle = actions?.Idle;
+    if (!tap) return;
+    try {
+      tap.reset();
+      tap.setLoop(THREE.LoopOnce, 1);
+      tap.clampWhenFinished = true;
+      tap.fadeIn(0.05).play();
+      window.setTimeout(() => {
+        try {
+          tap.fadeOut(0.1);
+          idle?.reset().fadeIn(0.15).play();
+        } catch {}
+      }, 450);
+    } catch {}
+  };
 
   return (
     <group
@@ -58,10 +72,12 @@ function BuddyModel3D({ onClick }: { onClick?: () => void }) {
       scale={5.8}
       onClick={(e) => {
         e.stopPropagation();
+        triggerTapReact();
         onClick?.();
       }}
       onPointerDown={(e) => {
         e.stopPropagation();
+        triggerTapReact();
         onClick?.();
       }}
       onPointerOver={() => {
@@ -363,4 +379,4 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick }: TreehouseI
   );
 }
 
-useGLTF.preload('/models/buddy.glb');
+useGLTF.preload('/models/buddy-animated-opt.glb');
