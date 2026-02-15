@@ -27,17 +27,28 @@ import { useBuddyStore } from '../store/buddyStore';
 interface TreehouseInterior3DProps {
   onBack: () => void;
   onBuddyClick?: () => void;
+  /** Show debug overlay for iOS pointer/animation diagnostics. */
+  debug?: boolean;
 }
 
 type StationId = 'basketball' | 'feeding' | 'bedtime';
 
-function BuddyModel3D({ onClick }: { onClick?: () => void }) {
+function BuddyModel3D({
+  onClick,
+  onDebug,
+}: {
+  onClick?: () => void;
+  onDebug?: (info: { actionNames: string[] }) => void;
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/models/buddy-animated-opt.glb') as any;
   const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { actions } = useAnimations(animations ?? [], groupRef);
 
   useEffect(() => {
+    const names = actions ? Object.keys(actions).filter(Boolean) : [];
+    onDebug?.({ actionNames: names });
+
     const idle = actions?.Idle;
     if (!idle) return;
     idle.reset().fadeIn(0.2).play();
@@ -46,7 +57,7 @@ function BuddyModel3D({ onClick }: { onClick?: () => void }) {
         idle.fadeOut(0.15);
       } catch {}
     };
-  }, [actions]);
+  }, [actions, onDebug]);
 
   const triggerTapReact = () => {
     const tap = actions?.TapReact;
@@ -171,9 +182,11 @@ function Station({
 function Room({
   onBuddyClick,
   onStationClick,
+  onBuddyDebug,
 }: {
   onBuddyClick?: () => void;
   onStationClick: (id: StationId) => void;
+  onBuddyDebug?: (info: { actionNames: string[] }) => void;
 }) {
   // Phase-1 magical treehouse palette (warm wood + purple night + cyan glow)
   const wallColor = '#5b341f';
@@ -243,7 +256,7 @@ function Room({
       </mesh>
 
       {/* Buddy */}
-      <BuddyModel3D onClick={onBuddyClick} />
+      <BuddyModel3D onClick={onBuddyClick} onDebug={onBuddyDebug} />
 
       {/* Stations (simple 3D props for now) */}
       <Station
@@ -287,8 +300,11 @@ function Room({
   );
 }
 
-export default function TreehouseInterior3D({ onBack, onBuddyClick }: TreehouseInterior3DProps) {
+export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = false }: TreehouseInterior3DProps) {
   const [activeGame, setActiveGame] = useState<StationId | null>(null);
+  const [debugTapCount, setDebugTapCount] = useState(0);
+  const [debugActionNames, setDebugActionNames] = useState<string[]>([]);
+  const [debugLastPtr, setDebugLastPtr] = useState<string>('');
   const { totalStars, buddyHappiness, buddyEnergy, playFunActivity, setBuddyHappiness, setBuddyEnergy } =
     useBuddyStore();
 
@@ -322,13 +338,26 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick }: TreehouseI
         dpr={[1, 1.5]}
         camera={{ position: [0, 1.8, 7.5], fov: 45 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+        style={{ touchAction: 'none' }}
+        onPointerDown={(e) => {
+          if (!debug) return;
+          setDebugTapCount((c) => c + 1);
+          setDebugLastPtr(`${e.pointerType}:${Math.round(e.clientX)},${Math.round(e.clientY)}`);
+        }}
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color('#2a0f2b'), 1);
           gl.outputColorSpace = THREE.SRGBColorSpace;
+          try {
+            gl.domElement.style.touchAction = 'none';
+          } catch {}
         }}
       >
         {/* Fixed camera: no orbit controls (Tom-style) */}
-        <Room onBuddyClick={onBuddyClick} onStationClick={(id) => setActiveGame(id)} />
+        <Room
+          onBuddyClick={onBuddyClick}
+          onStationClick={(id) => setActiveGame(id)}
+          onBuddyDebug={(info) => setDebugActionNames(info.actionNames)}
+        />
       </Canvas>
 
       {/* UI overlay */}
@@ -380,6 +409,17 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick }: TreehouseI
             </div>
           </div>
         </div>
+
+        {/* Debug overlay (temporary, controlled by prop) */}
+        {debug && (
+          <div className="pointer-events-auto absolute bottom-16 left-1/2 -translate-x-1/2 max-w-[92vw]">
+            <div className="bg-black/60 backdrop-blur rounded-xl px-3 py-2 text-[11px] text-white/90 border border-white/10">
+              <div className="font-extrabold">DEBUG</div>
+              <div>canvas taps: <span className="font-bold">{debugTapCount}</span> ({debugLastPtr || '—'})</div>
+              <div>buddy actions: <span className="font-bold">{debugActionNames.length}</span> [{debugActionNames.join(', ') || '—'}]</div>
+            </div>
+          </div>
+        )}
 
         {/* Bottom hint */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white/70 text-xs font-bold drop-shadow-lg">

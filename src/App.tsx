@@ -196,6 +196,7 @@ export default function App() {
                 playClick();
                 setShowVoiceRecorder(true);
               }}
+              debug={new URLSearchParams(window.location.search).has('debug3d')}
             />
           )}
 
