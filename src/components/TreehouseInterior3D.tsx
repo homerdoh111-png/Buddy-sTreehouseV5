@@ -59,6 +59,8 @@ function BuddyModel3D({
     };
   }, [actions, onDebug]);
 
+  const lastTapMsRef = useRef<number>(0);
+
   const triggerTapReact = () => {
     const tap = actions?.TapReact;
     const idle = actions?.Idle;
@@ -77,20 +79,30 @@ function BuddyModel3D({
     } catch {}
   };
 
+  // Double-tap to talk (prevents accidental popup when Buddy is large on screen)
+  const maybeOpenTalk = () => {
+    const now = Date.now();
+    const dt = now - lastTapMsRef.current;
+    lastTapMsRef.current = now;
+    if (dt > 0 && dt < 320) {
+      onClick?.();
+    }
+  };
+
   return (
     <group
       ref={groupRef}
-      position={[0, -1.45, 1.2]}
-      scale={9.5}
+      position={[0, -1.45, 0.6]}
+      scale={7.2}
       onClick={(e) => {
         e.stopPropagation();
         triggerTapReact();
-        onClick?.();
+        maybeOpenTalk();
       }}
       onPointerDown={(e) => {
         e.stopPropagation();
         triggerTapReact();
-        onClick?.();
+        maybeOpenTalk();
       }}
       onPointerOver={() => {
         document.body.style.cursor = 'pointer';
