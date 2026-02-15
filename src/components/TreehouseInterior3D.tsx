@@ -62,13 +62,22 @@ type StationId = 'basketball' | 'feeding' | 'bedtime';
 function BuddyModel3D({
   onClick,
   onDebug,
+  moveTargetX,
 }: {
   onClick?: () => void;
   onDebug?: (info: { actionNames: string[] }) => void;
+  /** When set, Buddy will ease toward this X position (tap-to-walk feel). */
+  moveTargetX?: number | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const dragStartRef = useRef<{ x: number; buddyX: number } | null>(null);
   const [buddyX, setBuddyX] = useState(-2.15);
+  const buddyXRef = useRef(-2.15);
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    buddyXRef.current = buddyX;
+  }, [buddyX]);
 
   const { scene, animations } = useGLTF('/models/buddy-animated-opt.glb') as any;
   const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
@@ -142,7 +151,11 @@ function BuddyModel3D({
 
   // iOS Safari sometimes drops pointerup/pointercancel; add global cancel hooks.
   useEffect(() => {
-    const cancel = () => cancelHold();
+    const cancel = () => {
+      isDraggingRef.current = false;
+      dragStartRef.current = null;
+      cancelHold();
+    };
     window.addEventListener('pointerup', cancel, { passive: true });
     window.addEventListener('pointercancel', cancel, { passive: true });
     window.addEventListener('touchend', cancel, { passive: true });
@@ -158,6 +171,20 @@ function BuddyModel3D({
       document.removeEventListener('visibilitychange', cancel);
     };
   }, []);
+
+  // Tap-to-walk: ease Buddy toward a target X when provided.
+  useFrame((_, delta) => {
+    if (moveTargetX == null) return;
+    if (isDraggingRef.current) return;
+    const current = buddyXRef.current;
+    const target = Math.max(-3.2, Math.min(-0.8, moveTargetX));
+    const t = 1 - Math.pow(0.0005, delta); // smooth-ish framerate-independent
+    const next = THREE.MathUtils.lerp(current, target, t);
+    if (Math.abs(next - current) > 0.0001) {
+      buddyXRef.current = next;
+      setBuddyX(next);
+    }
+  });
 
   return (
     <group
@@ -176,7 +203,8 @@ function BuddyModel3D({
         e.stopPropagation();
         // Allow slight horizontal drag to reposition Buddy.
         if (e.pointerType !== 'mouse') {
-          dragStartRef.current = { x: e.clientX, buddyX };
+          isDraggingRef.current = true;
+          dragStartRef.current = { x: e.clientX, buddyX: buddyXRef.current };
         }
         startHold();
       }}
@@ -185,10 +213,13 @@ function BuddyModel3D({
         const dx = e.clientX - dragStartRef.current.x;
         // Convert px drag to world-ish units (tuned). Clamp to keep Buddy in frame.
         const next = dragStartRef.current.buddyX + dx * 0.01;
-        setBuddyX(Math.max(-3.2, Math.min(-0.8, next)));
+        const clamped = Math.max(-3.2, Math.min(-0.8, next));
+        buddyXRef.current = clamped;
+        setBuddyX(clamped);
       }}
       onPointerUp={(e) => {
         e.stopPropagation();
+        isDraggingRef.current = false;
         dragStartRef.current = null;
         cancelHold();
         if (!holdFiredRef.current) {
@@ -362,10 +393,12 @@ function Room({
   onBuddyClick,
   onStationClick,
   onBuddyDebug,
+  buddyMoveTargetX,
 }: {
   onBuddyClick?: () => void;
   onStationClick: (id: StationId) => void;
   onBuddyDebug?: (info: { actionNames: string[] }) => void;
+  buddyMoveTargetX?: number | null;
 }) {
   // Cozy magical treehouse palette (warm wood + lantern glow + soft night accents)
   const wallColor = '#6a3f25';
@@ -438,7 +471,7 @@ function Room({
       </mesh>
 
       {/* Buddy */}
-      <BuddyModel3D onClick={onBuddyClick} onDebug={onBuddyDebug} />
+      <BuddyModel3D onClick={onBuddyClick} onDebug={onBuddyDebug} moveTargetX={buddyMoveTargetX} />
 
       {/* Stations (grouped to the right so Buddy is the star) */}
       <group position={[1.1, 0, 0]}>
@@ -486,6 +519,7 @@ function Room({
 
 export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = false }: TreehouseInterior3DProps) {
   const [activeGame, setActiveGame] = useState<StationId | null>(null);
+  const [buddyMoveTargetX, setBuddyMoveTargetX] = useState<number | null>(null);
   const [debugTapCount, setDebugTapCount] = useState(0);
   const [debugActionNames, setDebugActionNames] = useState<string[]>([]);
   const [debugLastPtr, setDebugLastPtr] = useState<string>('');
@@ -540,8 +574,22 @@ export default function TreehouseInterior3D({ onBack, onBuddyClick, debug = fals
         <InteriorCameraRig />
         <Room
           onBuddyClick={onBuddyClick}
-          onStationClick={(id) => setActiveGame(id)}
+          onStationClick={(id) => {
+            // Tap-to-walk: nudge Buddy toward the selected station, then open it.
+            const targets: Record<StationId, number> = {
+              feeding: 0.1,
+              bedtime: 0.65,
+              basketball: 0.35,
+            };
+            const tx = targets[id];
+            setBuddyMoveTargetX(tx);
+            // Delay open slightly to sell movement.
+            window.setTimeout(() => {
+              setActiveGame(id);
+            }, 650);
+          }}
           onBuddyDebug={(info) => setDebugActionNames(info.actionNames)}
+          buddyMoveTargetX={buddyMoveTargetX}
         />
       </Canvas>
 
