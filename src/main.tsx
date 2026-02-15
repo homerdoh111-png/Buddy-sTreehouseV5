@@ -12,8 +12,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // PWA: minimal service worker registration (production only)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // best-effort; ignore
-    })
-  })
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        // Best-effort: prompt an update check so new builds land faster.
+        try {
+          reg.update();
+        } catch {}
+      })
+      .catch(() => {
+        // best-effort; ignore
+      });
+  });
 }

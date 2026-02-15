@@ -3,10 +3,9 @@
    - avoids aggressive caching of cross-origin resources
 */
 
-const CACHE_NAME = 'buddy-treehouse-v1';
+const CACHE_NAME = 'buddy-treehouse-v2';
+// Keep core cache conservative to avoid iOS PWA getting stuck on old HTML/JS.
 const CORE_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/favicon.svg',
   '/icons/icon-192.png',
@@ -41,14 +40,32 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
+  // For navigations (HTML), always try network first so updates land reliably on iOS.
+  const isNav = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
+
+      if (isNav) {
+        try {
+          const fresh = await fetch(req);
+          if (fresh && fresh.ok) return fresh;
+        } catch {
+          // ignore
+        }
+        return (
+          (await cache.match('/index.html')) ||
+          (await cache.match('/')) ||
+          (await fetch('/'))
+        );
+      }
+
+      // For other same-origin assets, cache-first.
       const cached = await cache.match(req);
       if (cached) return cached;
 
       const res = await fetch(req);
-      // Cache successful basic responses.
       if (res && res.ok && (res.type === 'basic' || res.type === 'default')) {
         cache.put(req, res.clone());
       }
