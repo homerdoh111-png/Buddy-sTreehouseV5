@@ -9,6 +9,7 @@ import { useBuddyStore } from '../store/buddyStore';
 
 interface TreehouseInteriorProps {
   onBack: () => void;
+  onBuddyClick?: () => void;
 }
 
 interface FunActivity {
@@ -25,29 +26,29 @@ const FUN_ACTIVITIES: FunActivity[] = [
     id: 'basketball',
     name: 'Basketball',
     icon: '\uD83C\uDFC0',
-    starsRequired: 10,
+    starsRequired: 0,
     description: 'Shoot hoops with Buddy!',
     gradient: 'from-orange-400 to-red-500',
   },
   {
     id: 'feeding',
-    name: 'Feed Buddy',
+    name: 'Eat',
     icon: '\uD83C\uDF55',
-    starsRequired: 20,
+    starsRequired: 0,
     description: 'Feed Buddy yummy food!',
     gradient: 'from-amber-400 to-orange-500',
   },
   {
     id: 'bedtime',
-    name: 'Bedtime',
+    name: 'Sleep',
     icon: '\uD83D\uDECF\uFE0F',
-    starsRequired: 30,
+    starsRequired: 0,
     description: 'Tuck Buddy into bed!',
     gradient: 'from-indigo-400 to-purple-500',
   },
 ];
 
-export default function TreehouseInterior({ onBack }: TreehouseInteriorProps) {
+export default function TreehouseInterior({ onBack, onBuddyClick }: TreehouseInteriorProps) {
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const { totalStars, buddyHappiness, buddyEnergy, playFunActivity, setBuddyHappiness, setBuddyEnergy } = useBuddyStore();
 
@@ -197,14 +198,20 @@ export default function TreehouseInterior({ onBack }: TreehouseInteriorProps) {
             transition={{ type: 'spring', damping: 12 }}
             className="text-center"
           >
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            <motion.button
+              onClick={() => onBuddyClick?.()}
+              className="active:scale-95 transition-transform"
+              aria-label="Buddy"
             >
-              <div className="text-[140px] md:text-[160px] leading-none drop-shadow-2xl">
-                {buddyEnergy < 20 ? '\uD83D\uDE34' : buddyHappiness > 80 ? '\uD83D\uDE0A' : '\uD83D\uDC3B'}
-              </div>
-            </motion.div>
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className="text-[140px] md:text-[160px] leading-none drop-shadow-2xl">
+                  {buddyEnergy < 20 ? '\uD83D\uDE34' : buddyHappiness > 80 ? '\uD83D\uDE0A' : '\uD83D\uDC3B'}
+                </div>
+              </motion.div>
+            </motion.button>
             <p className="text-amber-200 font-bold mt-2 text-lg drop-shadow-lg">
               {buddyEnergy < 20 ? "Buddy is tired..." : buddyHappiness > 80 ? "Buddy is happy!" : "Hey there!"}
             </p>
