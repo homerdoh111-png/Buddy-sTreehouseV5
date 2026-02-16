@@ -176,17 +176,25 @@ function BuddyModel3D({
     };
   }, []);
 
-  // Tap-to-walk: ease Buddy toward a target X when provided.
-  useFrame((_, delta) => {
-    if (moveTargetX == null) return;
-    if (isDraggingRef.current) return;
-    const current = buddyXRef.current;
-    const target = Math.max(-3.2, Math.min(-0.8, moveTargetX));
-    const t = 1 - Math.pow(0.0005, delta); // smooth-ish framerate-independent
-    const next = THREE.MathUtils.lerp(current, target, t);
-    if (Math.abs(next - current) > 0.0001) {
-      buddyXRef.current = next;
-      setBuddyX(next);
+  // Tap-to-walk + subtle idle life.
+  useFrame((state, delta) => {
+    if (moveTargetX != null && !isDraggingRef.current) {
+      const current = buddyXRef.current;
+      const target = Math.max(-3.2, Math.min(-0.8, moveTargetX));
+      const t = 1 - Math.pow(0.0005, delta); // smooth-ish framerate-independent
+      const next = THREE.MathUtils.lerp(current, target, t);
+      if (Math.abs(next - current) > 0.0001) {
+        buddyXRef.current = next;
+        setBuddyX(next);
+      }
+    }
+
+    // Tiny idle bob/tilt for "alive" feeling.
+    if (groupRef.current) {
+      const t = state.clock.getElapsedTime();
+      const baseY = -2.2 + buddyGroundOffset * buddyScale;
+      groupRef.current.position.y = baseY + Math.sin(t * 1.4) * 0.02;
+      groupRef.current.rotation.z = Math.sin(t * 0.9) * 0.015;
     }
   });
 
@@ -431,6 +439,16 @@ function Room({
         <meshStandardMaterial color={floorColor} roughness={0.9} />
       </mesh>
 
+      {/* Cozy rug to anchor scene */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.5, -2.18, 0.2]} receiveShadow>
+        <circleGeometry args={[3.2, 40]} />
+        <meshStandardMaterial color={'#5a2f1d'} roughness={0.85} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.5, -2.175, 0.2]}>
+        <ringGeometry args={[2.2, 2.75, 40]} />
+        <meshBasicMaterial color={'#d8a35a'} transparent opacity={0.2} />
+      </mesh>
+
       {/* Back wall */}
       <mesh position={[0, 1.8, -6]} receiveShadow>
         <planeGeometry args={[20, 10]} />
@@ -451,6 +469,16 @@ function Room({
       <mesh position={[0.2, 2.45, -5.9]}>
         <planeGeometry args={[4.7, 2.9]} />
         <meshStandardMaterial color={'#ffd8a8'} emissive={'#ff9b3d'} emissiveIntensity={0.35} />
+      </mesh>
+
+      {/* Hanging lantern accents */}
+      <mesh position={[-5.7, 2.8, -2.8]}>
+        <sphereGeometry args={[0.18, 14, 14]} />
+        <meshStandardMaterial color={'#ffd68f'} emissive={'#ff9b3d'} emissiveIntensity={0.65} />
+      </mesh>
+      <mesh position={[5.9, 2.7, -2.6]}>
+        <sphereGeometry args={[0.16, 14, 14]} />
+        <meshStandardMaterial color={'#ffd68f'} emissive={'#ff9b3d'} emissiveIntensity={0.55} />
       </mesh>
 
       {/* Sparkles / magic (kept light for iPhone/iPad) */}
@@ -626,13 +654,13 @@ export default function TreehouseInterior3D({
         />
 
         {/* Status bars */}
-        <div className="px-6 flex gap-4">
+        <div className="px-4 md:px-6 flex gap-3 md:gap-4 mt-1 bg-black/20 backdrop-blur-sm rounded-xl mx-3 md:mx-6 py-2 border border-white/10">
           <div className="flex-1">
             <div className="flex items-center gap-1 mb-1">
               <span className="text-xs">💖</span>
               <span className="text-[10px] font-bold text-white/80">Happy</span>
             </div>
-            <div className="h-2.5 bg-black/20 rounded-full overflow-hidden">
+            <div className="h-2 bg-black/25 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-pink-400 to-red-400"
                 animate={{ width: `${buddyHappiness}%` }}
@@ -644,7 +672,7 @@ export default function TreehouseInterior3D({
               <span className="text-xs">⚡</span>
               <span className="text-[10px] font-bold text-white/80">Energy</span>
             </div>
-            <div className="h-2.5 bg-black/20 rounded-full overflow-hidden">
+            <div className="h-2 bg-black/25 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-yellow-300 to-green-400"
                 animate={{ width: `${buddyEnergy}%` }}
@@ -664,9 +692,9 @@ export default function TreehouseInterior3D({
           </div>
         )}
 
-        {/* Bottom hint */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white/70 text-xs font-bold drop-shadow-lg">
-          Eat • Sleep • Basketball
+        {/* Bottom hint (reduced clutter on small screens) */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white/60 text-[11px] font-bold drop-shadow-lg hidden md:block">
+          🍯 Eat • 😴 Sleep • 🏀 Ball
         </div>
       </div>
     </div>
