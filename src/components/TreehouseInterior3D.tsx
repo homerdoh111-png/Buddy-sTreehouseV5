@@ -392,27 +392,24 @@ function Station({
   );
 }
 
-function FurnitureModel({
-  url,
-  targetHeight,
-  position,
-  rotation = [0, 0, 0],
-}: {
-  url: string;
-  targetHeight: number;
-  position: [number, number, number];
-  rotation?: [number, number, number];
-}) {
-  const { scene } = useGLTF(url) as any;
+function RoomShellModel() {
+  const { scene } = useGLTF('/models/treehouse.glb') as any;
   const cloned = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+
+  // Normalize shell size so framing is consistent across devices.
   const { s, yOff } = useMemo(() => {
+    const targetHeight = 8.4;
     const scale = computeFitScale(cloned, targetHeight);
     const off = computeGroundOffsetY(cloned);
     return { s: scale, yOff: off };
-  }, [cloned, targetHeight]);
+  }, [cloned]);
 
   return (
-    <group position={[position[0], position[1] + yOff * s, position[2]]} rotation={rotation} scale={s}>
+    <group
+      position={[0.45, -2.2 + yOff * s, -1.1]}
+      rotation={[0, 0.18, 0]}
+      scale={s}
+    >
       <primitive object={cloned} />
     </group>
   );
@@ -429,10 +426,6 @@ function Room({
   onBuddyDebug?: (info: { actionNames: string[] }) => void;
   buddyMoveTargetX?: number | null;
 }) {
-  // Cozy magical treehouse palette (warm wood + lantern glow + soft night accents)
-  const wallColor = '#6a3f25';
-  const floorColor = '#2a1a12';
-
   return (
     <>
       {/* Lighting (Tom-like polish: warm key + cool rim + gentle ambient) */}
@@ -450,94 +443,19 @@ function Room({
       <directionalLight position={[-6.5, 4.6, 6.5]} intensity={0.35} color={'#9ad7ff'} />
       <MagicLightPulse />
 
-      {/* Floor */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.2, 0]} receiveShadow>
-        <planeGeometry args={[20, 20]} />
-        <meshStandardMaterial color={floorColor} roughness={0.9} />
-      </mesh>
+      {/* Imported room shell (hard reset from procedural room) */}
+      <RoomShellModel />
 
-      {/* Cozy rug to anchor scene */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.5, -2.18, 0.2]} receiveShadow>
-        <circleGeometry args={[3.2, 40]} />
-        <meshStandardMaterial color={'#5a2f1d'} roughness={0.85} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1.5, -2.175, 0.2]}>
-        <ringGeometry args={[2.2, 2.75, 40]} />
-        <meshBasicMaterial color={'#d8a35a'} transparent opacity={0.2} />
-      </mesh>
-
-      {/* Back wall */}
-      <mesh position={[0, 1.8, -6]} receiveShadow>
-        <planeGeometry args={[20, 10]} />
-        <meshStandardMaterial color={wallColor} roughness={0.95} />
-      </mesh>
-
-      {/* Side walls */}
-      <mesh rotation={[0, Math.PI / 2, 0]} position={[-8, 1.8, 0]} receiveShadow>
-        <planeGeometry args={[12, 10]} />
-        <meshStandardMaterial color={wallColor} roughness={0.95} />
-      </mesh>
-      <mesh rotation={[0, -Math.PI / 2, 0]} position={[8, 1.8, 0]} receiveShadow>
-        <planeGeometry args={[12, 10]} />
-        <meshStandardMaterial color={wallColor} roughness={0.95} />
-      </mesh>
-
-      {/* "Window" lantern glow */}
-      <mesh position={[0.2, 2.45, -5.9]}>
-        <planeGeometry args={[4.7, 2.9]} />
-        <meshStandardMaterial color={'#ffd8a8'} emissive={'#ff9b3d'} emissiveIntensity={0.35} />
-      </mesh>
-
-      {/* Hanging lantern accents */}
-      <mesh position={[-5.7, 2.8, -2.8]}>
-        <sphereGeometry args={[0.18, 14, 14]} />
-        <meshStandardMaterial color={'#ffd68f'} emissive={'#ff9b3d'} emissiveIntensity={0.65} />
-      </mesh>
-      <mesh position={[5.9, 2.7, -2.6]}>
-        <sphereGeometry args={[0.16, 14, 14]} />
-        <meshStandardMaterial color={'#ffd68f'} emissive={'#ff9b3d'} emissiveIntensity={0.55} />
-      </mesh>
-
-      {/* Imported cozy furniture (non-blocky, Tom-like room feel) */}
-      <FurnitureModel
-        url={'/models/room/painted_wooden_sofa/painted_wooden_sofa_1k.gltf'}
-        targetHeight={1.35}
-        position={[-1.9, -2.2, -2.9]}
-        rotation={[0, 0.42, 0]}
-      />
-      <FurnitureModel
-        url={'/models/room/coffee_table_round_01/coffee_table_round_01_1k.gltf'}
-        targetHeight={0.78}
-        position={[0.55, -2.2, -1.25]}
-        rotation={[0, -0.1, 0]}
-      />
-      <FurnitureModel
-        url={'/models/room/painted_wooden_nightstand/painted_wooden_nightstand_1k.gltf'}
-        targetHeight={0.95}
-        position={[4.9, -2.2, -2.3]}
-        rotation={[0, -0.32, 0]}
-      />
-
-      {/* Sparkles / magic (kept light for iPhone/iPad) */}
+      {/* Soft ambient particles only */}
       <Sparkles
-        count={20}
-        speed={0.16}
-        opacity={0.32}
+        count={12}
+        speed={0.14}
+        opacity={0.22}
         scale={[10, 6, 10]}
-        size={3}
+        size={2.6}
         color={'#ffeaa6'}
-        position={[0, 1.55, -1]}
+        position={[0, 1.45, -1]}
       />
-
-      {/* Light rays (simple translucent planes) */}
-      <mesh position={[0.25, 2.2, -5.6]} rotation={[0, 0, 0]}>
-        <planeGeometry args={[5.2, 3.4]} />
-        <meshBasicMaterial color={'#ffd8a8'} transparent opacity={0.06} />
-      </mesh>
-      <mesh position={[-0.65, 2.0, -5.5]} rotation={[0, 0.12, 0]}>
-        <planeGeometry args={[6.0, 3.6]} />
-        <meshBasicMaterial color={'#9ad7ff'} transparent opacity={0.05} />
-      </mesh>
 
       {/* Buddy */}
       <BuddyModel3D onClick={onBuddyClick} onDebug={onBuddyDebug} moveTargetX={buddyMoveTargetX} />
@@ -739,6 +657,4 @@ export default function TreehouseInterior3D({
 }
 
 useGLTF.preload('/models/buddy-animated-opt.glb');
-useGLTF.preload('/models/room/painted_wooden_sofa/painted_wooden_sofa_1k.gltf');
-useGLTF.preload('/models/room/coffee_table_round_01/coffee_table_round_01_1k.gltf');
-useGLTF.preload('/models/room/painted_wooden_nightstand/painted_wooden_nightstand_1k.gltf');
+useGLTF.preload('/models/treehouse.glb');
