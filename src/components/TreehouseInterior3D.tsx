@@ -401,6 +401,32 @@ function Station({
   );
 }
 
+function FurnitureModel({
+  url,
+  targetHeight,
+  position,
+  rotation = [0, 0, 0],
+}: {
+  url: string;
+  targetHeight: number;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  const { scene } = useGLTF(url) as any;
+  const cloned = useMemo(() => SkeletonUtils.clone(scene), [scene]);
+  const { s, yOff } = useMemo(() => {
+    const scale = computeFitScale(cloned, targetHeight);
+    const off = computeGroundOffsetY(cloned);
+    return { s: scale, yOff: off };
+  }, [cloned, targetHeight]);
+
+  return (
+    <group position={[position[0], position[1] + yOff * s, position[2]]} rotation={rotation} scale={s}>
+      <primitive object={cloned} />
+    </group>
+  );
+}
+
 function Room({
   onBuddyClick,
   onStationClick,
@@ -481,11 +507,31 @@ function Room({
         <meshStandardMaterial color={'#ffd68f'} emissive={'#ff9b3d'} emissiveIntensity={0.55} />
       </mesh>
 
+      {/* Imported cozy furniture (non-blocky, Tom-like room feel) */}
+      <FurnitureModel
+        url={'/models/room/painted_wooden_sofa/painted_wooden_sofa_1k.gltf'}
+        targetHeight={1.35}
+        position={[-1.9, -2.2, -2.9]}
+        rotation={[0, 0.42, 0]}
+      />
+      <FurnitureModel
+        url={'/models/room/coffee_table_round_01/coffee_table_round_01_1k.gltf'}
+        targetHeight={0.78}
+        position={[0.55, -2.2, -1.25]}
+        rotation={[0, -0.1, 0]}
+      />
+      <FurnitureModel
+        url={'/models/room/painted_wooden_nightstand/painted_wooden_nightstand_1k.gltf'}
+        targetHeight={0.95}
+        position={[4.9, -2.2, -2.3]}
+        rotation={[0, -0.32, 0]}
+      />
+
       {/* Sparkles / magic (kept light for iPhone/iPad) */}
       <Sparkles
-        count={28}
-        speed={0.18}
-        opacity={0.45}
+        count={20}
+        speed={0.16}
+        opacity={0.32}
         scale={[10, 6, 10]}
         size={3}
         color={'#ffeaa6'}
@@ -702,3 +748,6 @@ export default function TreehouseInterior3D({
 }
 
 useGLTF.preload('/models/buddy-animated-opt.glb');
+useGLTF.preload('/models/room/painted_wooden_sofa/painted_wooden_sofa_1k.gltf');
+useGLTF.preload('/models/room/coffee_table_round_01/coffee_table_round_01_1k.gltf');
+useGLTF.preload('/models/room/painted_wooden_nightstand/painted_wooden_nightstand_1k.gltf');
