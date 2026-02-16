@@ -7,6 +7,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { ParentDashboard } from './components/ParentDashboard';
 import { BuddyVoiceRecorder } from './components/BuddyVoiceRecorder';
 import { HomeDock } from './components/HomeDock';
+import { HUDBar, Pill, RoundIconButton } from './components/HUDBar';
 import ActivityModal from './components/ActivityModal';
 import TreehouseInterior3D from './components/TreehouseInterior3D';
 import {
@@ -219,67 +220,26 @@ export default function App() {
 
               {/* UI OVERLAY */}
               <div className="absolute inset-0 z-10 pointer-events-none">
-                {/* ------ TOP BAR ------ */}
-                <header className="pointer-events-auto flex justify-between items-start p-3 md:p-4 gap-2">
-                  {/* Stars Counter */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="bg-black/30 backdrop-blur-xl rounded-2xl px-4 py-2 md:px-6 md:py-3 shadow-2xl border border-white/10"
-                  >
-                    <div className="text-xl md:text-3xl font-bold text-yellow-400 flex items-center gap-2">
-                      <span className="text-lg md:text-2xl">&#11088;</span> {totalStars}
-                    </div>
-                  </motion.div>
-
-                  {/* Title */}
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center hidden md:block"
-                  >
-                    <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                      Buddy's Treehouse
-                    </h1>
-                    <p className="text-sm md:text-lg text-white/70 drop-shadow-lg">Learn, Play, Grow!</p>
-                  </motion.div>
-
-                  {/* Action Buttons */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex gap-2 flex-wrap justify-end"
-                  >
-                    {/* Music Toggle - clear label */}
-                    <button
-                      onClick={toggleBackgroundMusic}
-                      className={`flex items-center gap-1.5 px-3 py-2 md:px-4 rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95 text-sm md:text-base font-bold border border-white/10 ${
-                        backgroundMusicEnabled
-                          ? 'bg-green-500/80 text-white'
-                          : 'bg-gray-600/80 text-white/80'
-                      }`}
-                    >
-                      <span>{backgroundMusicEnabled ? '\u266B' : '\uD83D\uDD07'}</span>
-                      <span className="hidden sm:inline">Music {backgroundMusicEnabled ? 'On' : 'Off'}</span>
-                    </button>
-
-                    {/* Parent Dashboard */}
-                    <button
-                      onClick={() => { playClick(); setShowParentDashboard(true); }}
-                      className="px-3 py-2 md:px-4 bg-gradient-to-r from-purple-500/80 to-blue-500/80 text-white text-sm md:text-base font-bold rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95 border border-white/10"
-                    >
-                      <span className="hidden sm:inline">Parent </span>Dashboard
-                    </button>
-
-                    {/* Settings */}
-                    <button
-                      onClick={() => { playClick(); setShowSettings(true); }}
-                      className="px-3 py-2 bg-white/20 text-white text-lg rounded-xl shadow-lg backdrop-blur-sm transition-all active:scale-95 border border-white/10"
-                    >
-                      &#9881;
-                    </button>
-                  </motion.div>
-                </header>
+                {/* ------ TOP BAR (Unified HUD) ------ */}
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+                  <HUDBar
+                    left={<div className="w-12 h-12" aria-hidden />}
+                    title={<div className="text-lg md:text-xl font-black text-white drop-shadow-lg">Treehouse</div>}
+                    right={
+                      <>
+                        <RoundIconButton
+                          label={backgroundMusicEnabled ? 'Music On' : 'Music Off'}
+                          onPress={toggleBackgroundMusic}
+                        >
+                          {backgroundMusicEnabled ? '♫' : '🔇'}
+                        </RoundIconButton>
+                        <Pill>
+                          <span className="text-yellow-300 font-extrabold">⭐ {totalStars}</span>
+                        </Pill>
+                      </>
+                    }
+                  />
+                </motion.div>
 
                 {/* ------ "TAP BUDDY TO TALK" HINT ------ */}
                 {!showVoiceRecorder && (
