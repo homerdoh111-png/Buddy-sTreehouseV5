@@ -297,79 +297,70 @@ function Station({
     <group position={position}>
       {/* Invisible hit plate (big, reliable touch target) */}
       <mesh onClick={handle} onPointerDown={handle}>
-        <boxGeometry args={[3.4, 2.4, 2.4]} />
+        <boxGeometry args={[3.2, 2.2, 2.2]} />
         <meshBasicMaterial transparent opacity={0} />
       </mesh>
 
-      {/* "Wood stump" base (cozy treehouse vibe) */}
-      <mesh position={[0, -0.55, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[1.25, 1.4, 0.55, 20]} />
-        <meshStandardMaterial color={'#7a4a2a'} roughness={0.95} metalness={0.0} />
-      </mesh>
-      <mesh position={[0, -0.26, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[1.05, 1.18, 0.18, 18]} />
-        <meshStandardMaterial color={'#8b5a3c'} roughness={0.9} metalness={0.0} />
+      {/* Ground shadow anchor (less podium-like) */}
+      <mesh position={[0, -0.95, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.95, 26]} />
+        <meshBasicMaterial color={'#000000'} transparent opacity={0.18} />
       </mesh>
 
-      {/* Station object (distinct silhouette per station) */}
+      {/* Station object (muted, toy-like, less blocky) */}
       <group ref={wobbleRef}>
         {id === 'feeding' && (
           <>
-            {/* bowl */}
-            <mesh position={[0, 0.32, 0]} castShadow receiveShadow>
-              <cylinderGeometry args={[0.62, 0.8, 0.35, 22]} />
-              <meshStandardMaterial color={baseColor} roughness={0.35} metalness={0.05} />
+            <mesh position={[0, -0.12, 0]} castShadow receiveShadow>
+              <cylinderGeometry args={[0.72, 0.82, 0.26, 24]} />
+              <meshStandardMaterial color={'#6f4b2e'} roughness={0.85} />
             </mesh>
-            {/* honey/food blob */}
-            <mesh position={[0, 0.52, 0]} castShadow receiveShadow>
-              <sphereGeometry args={[0.34, 18, 18]} />
-              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.45} roughness={0.25} />
+            <mesh position={[0, 0.16, 0]} castShadow receiveShadow>
+              <sphereGeometry args={[0.38, 20, 20]} />
+              <meshStandardMaterial color={baseColor} roughness={0.35} metalness={0.04} />
             </mesh>
           </>
         )}
 
         {id === 'bedtime' && (
           <>
-            {/* pillow */}
-            <mesh position={[0, 0.32, 0]} castShadow receiveShadow>
-              <boxGeometry args={[1.15, 0.38, 0.85]} />
-              <meshStandardMaterial color={baseColor} roughness={0.8} />
+            <mesh position={[0, -0.12, 0]} castShadow receiveShadow>
+              <boxGeometry args={[1.12, 0.2, 0.78]} />
+              <meshStandardMaterial color={'#6b4d3a'} roughness={0.9} />
             </mesh>
-            <mesh position={[0, 0.55, 0]} castShadow receiveShadow>
-              <sphereGeometry args={[0.22, 14, 14]} />
-              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.35} roughness={0.55} />
+            <mesh position={[0, 0.12, 0]} castShadow receiveShadow>
+              <boxGeometry args={[0.98, 0.22, 0.64]} />
+              <meshStandardMaterial color={baseColor} roughness={0.75} />
             </mesh>
           </>
         )}
 
         {id === 'basketball' && (
           <>
-            {/* hoop frame */}
-            <mesh position={[0, 0.55, -0.25]} rotation={[0, 0, 0]} castShadow receiveShadow>
-              <torusGeometry args={[0.55, 0.08, 10, 32]} />
-              <meshStandardMaterial color={baseColor} emissive={baseColor} emissiveIntensity={0.25} roughness={0.35} />
+            <mesh position={[0, 0.22, -0.18]} castShadow receiveShadow>
+              <torusGeometry args={[0.44, 0.06, 10, 28]} />
+              <meshStandardMaterial color={'#b14a2f'} roughness={0.45} />
             </mesh>
-            {/* ball */}
-            <mesh position={[0, 0.42, 0.35]} castShadow receiveShadow>
-              <sphereGeometry args={[0.28, 18, 18]} />
-              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.25} roughness={0.45} />
+            <mesh position={[0.18, 0.06, 0.22]} castShadow receiveShadow>
+              <sphereGeometry args={[0.24, 16, 16]} />
+              <meshStandardMaterial color={glowColor} emissive={glowColor} emissiveIntensity={0.12} roughness={0.5} />
             </mesh>
           </>
         )}
       </group>
 
-      {/* Cozy sparkle accent */}
+      {/* Subtle accent only */}
       <Sparkles
-        count={10}
-        speed={0.22}
-        opacity={0.55}
-        scale={[2.4, 1.3, 2.4]}
-        size={2.5}
+        count={4}
+        speed={0.16}
+        opacity={0.26}
+        scale={[1.8, 1.0, 1.8]}
+        size={2}
         color={'#ffeaa6'}
-        position={[0, 0.35, 0]}
+        position={[0, 0.1, 0]}
       />
 
-      {/* Label */}
+      {/* Minimal label */}
       <Html center distanceFactor={10}>
         <button
           onPointerDown={(e) => {
@@ -381,20 +372,20 @@ function Station({
             onClick(id);
           }}
           style={{
-            transform: 'translateY(-56px)',
+            transform: 'translateY(-44px)',
             textAlign: 'center',
             userSelect: 'none',
             pointerEvents: 'auto',
             color: 'white',
-            fontWeight: 900,
+            fontWeight: 800,
             border: 'none',
             background: 'transparent',
             padding: 0,
-            textShadow: '0 2px 12px rgba(0,0,0,0.75)',
+            textShadow: '0 2px 10px rgba(0,0,0,0.75)',
           }}
         >
-          <div style={{ fontSize: 28, lineHeight: '28px' }}>{emoji}</div>
-          <div style={{ fontSize: 14, opacity: 0.95 }}>{label}</div>
+          <div style={{ fontSize: 26, lineHeight: '26px' }}>{emoji}</div>
+          <div style={{ fontSize: 12, opacity: 0.92 }}>{label}</div>
         </button>
       </Html>
     </group>
