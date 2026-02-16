@@ -196,6 +196,9 @@ export default function App() {
                 playClick();
                 setShowVoiceRecorder(true);
               }}
+              onToggleMusic={toggleBackgroundMusic}
+              musicEnabled={backgroundMusicEnabled}
+              totalStars={totalStars}
               debug={new URLSearchParams(window.location.search).has('debug3d')}
             />
           )}
