@@ -335,6 +335,7 @@ export default function App() {
                 {showBubbles && ACTIVITIES.map((module, index) => { 
                   const pos = ACTIVITY_POSITIONS[index % ACTIVITY_POSITIONS.length];
                   const isLocked = totalStars < module.starsRequired;
+                  const isRecommended = !isLocked && index === 0;
 
                   return (
                     <motion.div
@@ -360,16 +361,17 @@ export default function App() {
                       <button
                         onClick={() => !isLocked && handleActivityClick(module)}
                         disabled={isLocked}
-                        className={`group relative flex flex-col items-center ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                        className={`group relative flex flex-col items-center active:scale-95 transition-transform ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         {/* Round icon circle */}
                         <div
                           className={`
-                            relative w-[60px] h-[60px] md:w-[72px] md:h-[72px] rounded-full flex items-center justify-center transition-all duration-300 shadow-lg
+                            relative w-[68px] h-[68px] md:w-[78px] md:h-[78px] rounded-full flex items-center justify-center transition-all duration-300 shadow-xl
                             ${isLocked
                               ? 'bg-black/50 backdrop-blur-md border-2 border-white/10'
-                              : 'bg-white/20 backdrop-blur-xl border-2 border-white/30 active:scale-90 active:bg-white/40'
+                              : 'bg-white/18 backdrop-blur-xl border-2 border-white/30 active:bg-white/35'
                             }
+                            ${isRecommended ? 'ring-2 ring-amber-300/80 animate-pulse' : ''}
                           `}
                         >
                           {isLocked && (
@@ -384,7 +386,7 @@ export default function App() {
                             <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
                           )}
                         </div>
-                        <span className={`mt-1 text-[10px] md:text-[11px] font-bold text-center whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${isLocked ? 'text-white/30' : 'text-white'}`}>
+                        <span className={`mt-1 text-[10px] md:text-[11px] font-bold text-center whitespace-nowrap drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] ${isLocked ? 'text-white/30' : 'text-white'} hidden md:block`}>
                           {module.name}
                         </span>
                       </button>

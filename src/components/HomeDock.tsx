@@ -39,7 +39,7 @@ export function HomeDock({
       className="absolute left-0 right-0 bottom-3 md:bottom-4 z-30 pointer-events-none"
     >
       <div className="mx-auto w-[min(720px,calc(100%-24px))]" data-testid="home-dock">
-        <div className="pointer-events-auto bg-black/35 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl px-3 py-2 md:px-4 md:py-3">
+        <div className="pointer-events-auto bg-black/35 backdrop-blur-xl border border-white/10 shadow-2xl rounded-3xl px-2 py-2 md:px-4 md:py-3">
           <div className="grid grid-cols-5 gap-2 md:gap-3">
             {ITEMS.map((item, idx) => (
               <motion.button
@@ -65,16 +65,16 @@ export function HomeDock({
                       }
                 }
                 className={
-                  `flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 md:py-3 ` +
-                  `border border-white/10 shadow-lg active:shadow-inner ` +
+                  `flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 md:py-3.5 min-h-[68px] md:min-h-[76px] ` +
+                  `border border-white/10 shadow-lg active:shadow-inner transition-all ` +
                   (item.variant === 'primary'
-                    ? 'bg-gradient-to-b from-white/18 to-white/8'
-                    : 'bg-white/10')
+                    ? 'bg-gradient-to-b from-white/20 to-white/10 active:from-white/30 active:to-white/15'
+                    : 'bg-white/10 active:bg-white/20')
                 }
                 aria-label={item.label}
               >
-                <div className="text-2xl md:text-3xl leading-none">{item.emoji}</div>
-                <div className="text-[11px] md:text-xs font-bold text-white/90">{item.label}</div>
+                <div className="text-[28px] md:text-[34px] leading-none">{item.emoji}</div>
+                <div className="text-[10px] md:text-xs font-bold text-white/90 tracking-wide">{item.label}</div>
               </motion.button>
             ))}
           </div>
